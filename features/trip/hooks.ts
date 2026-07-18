@@ -29,13 +29,17 @@ export function useMyTrips() {
   return useQuery({ queryKey: listKey(), queryFn: () => api.get<TripView[]>("/api/trip") });
 }
 
-export function useTrip(id: string | undefined, opts?: { live?: boolean }) {
+export function useTrip(id: string | undefined) {
   return useQuery({
     queryKey: detailKey(id ?? ""),
     queryFn: () => api.get<TripView>(`/api/trip/${id}`),
     enabled: Boolean(id),
-    // Polling fallback: while live, refetch the driver's location + ETA every 4s.
-    refetchInterval: opts?.live ? 4000 : false,
+    // Polling fallback (the hour-6 decision): while the trip is live, refetch the driver's location
+    // + ETA every 4s so the marker/ETA advance even if the Pusher socket isn't connected.
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === "started" || s === "in_progress" ? 4000 : false;
+    },
   });
 }
 
