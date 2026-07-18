@@ -10,10 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Pay for Trip" };
 
-export default async function PayPage({ params }: { params: { bookingId: string } }) {
+export default async function PayPage({ params }: { params: Promise<{ bookingId: string }> }) {
   await requireRolePage("employee");
 
-  const [b] = await db.select().from(booking).where(eq(booking.id, params.bookingId)).limit(1);
+  const { bookingId } = await params;
+  const [b] = await db.select().from(booking).where(eq(booking.id, bookingId)).limit(1);
   if (!b) notFound();
 
   return (
