@@ -77,6 +77,11 @@ export const PATCH = withErrorHandler(async (req: Request, ctx: Ctx) => {
   if (body.travelCostPerKm !== undefined) updateData.travelCostPerKm = String(body.travelCostPerKm);
   if (body.maintenanceMonthly !== undefined) updateData.maintenanceMonthly = String(body.maintenanceMonthly);
   if (body.autoApproveDomain !== undefined) updateData.autoApproveDomain = body.autoApproveDomain;
+  // Head office lives in the settings jsonb (no dedicated column) — merge, don't clobber other keys.
+  if (body.headOffice !== undefined) {
+    const prev = (existing.settings ?? {}) as Record<string, unknown>;
+    updateData.settings = { ...prev, headOffice: body.headOffice };
+  }
 
   const [updated] = await db
     .update(organization)

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserPlus, Loader2, Mail } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { TextField } from "@/components/form";
+import { coAmberBtn, coGhostBtn } from "@/components/co/ui";
 import { inviteFormSchema, type InviteFormValues } from "@/db/schema/invitation";
 
 interface InviteEmployeeDialogProps {
@@ -60,18 +60,15 @@ export function InviteEmployeeDialog({ onSuccess }: InviteEmployeeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" id="invite-employee-btn">
-          <Mail className="mr-2 h-4 w-4" />
-          Invite by Email
-        </Button>
+        <button type="button" id="invite-employee-btn" className={`${coAmberBtn} h-10 px-4 text-[14px]`}>
+          <Plus className="h-4 w-4" />
+          Invite employee
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            Invite Employee
-          </DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="font-display text-[color:var(--ink)]">Invite employee</DialogTitle>
+          <DialogDescription className="text-[color:var(--ink-2)]">
             Send a secure invitation link to an employee&apos;s email. They&apos;ll set their own
             password when they accept.
           </DialogDescription>
@@ -82,19 +79,30 @@ export function InviteEmployeeDialog({ onSuccess }: InviteEmployeeDialogProps) {
             <TextField
               control={form.control}
               name="email"
-              label="Employee Email"
+              label="Employee email"
               type="email"
               placeholder="employee@acme.dev"
             />
             {form.formState.errors.root && (
-              <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
+              <p className="text-sm text-[color:var(--destructive)]">{form.formState.errors.root.message}</p>
             )}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={loading} id="invite-employee-submit">
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                {loading ? "Sending…" : "Send Invite"}
-              </Button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className={`${coGhostBtn} h-10 px-4 text-[14px]`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                id="invite-employee-submit"
+                className={`${coAmberBtn} h-10 px-4 text-[14px]`}
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Sending…" : "Send invite"}
+              </button>
             </div>
           </form>
         </Form>

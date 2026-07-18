@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { requirePermissionPage } from "@/lib/session";
-import { PageHeader } from "@/components/page-header";
 import { ActivityView } from "@/features/activity-log/components/activity-view";
 
 export const metadata: Metadata = { title: "Activity Log" };
@@ -13,10 +12,14 @@ export default async function ActivityPage() {
   await requirePermissionPage("activityLog", "read");
   return (
     <div>
-      <PageHeader
-        title="Activity Log"
-        description="Every mutating action across the app, most recent first."
-      />
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Activity Log
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Every action in your organisation, most recent first.
+        </p>
+      </div>
       <ActivityView />
     </div>
   );

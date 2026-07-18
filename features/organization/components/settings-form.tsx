@@ -3,22 +3,57 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save, Loader2, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TextField } from "@/components/form";
+import { Loader2, Check } from "lucide-react";
+import { coCard, coAmberBtn } from "@/components/co/ui";
+import { cn } from "@/lib/utils";
 import { organizationFormSchema, type OrganizationFormValues, type Organization } from "@/db/schema/organization";
 
 interface OrgSettingsFormProps {
   org: Organization;
 }
 
+const INPUT_CLASS =
+  "w-full rounded-[10px] border border-[color:var(--line-2)] bg-[color:var(--surface-2)] px-3.5 py-3 text-[15px] text-[color:var(--ink)] outline-none transition-colors placeholder:text-[color:var(--ink-3)] focus:border-[color:var(--amber-strong)]";
+const LABEL_CLASS = "mb-1.5 block text-[13px] text-[color:var(--ink-2)]";
+
+/** A Coride pill switch — ink track, amber when on. */
+function PillSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-[26px] w-[46px] shrink-0 rounded-full border transition-colors",
+        checked
+          ? "border-[color:var(--amber-line)] bg-[color:var(--btn-amber-bg)]"
+          : "border-[color:var(--line-2)] bg-[color:var(--surface-2)]",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-1/2 h-[18px] w-[18px] -translate-y-1/2 rounded-full bg-white shadow-sm transition-all",
+          checked ? "left-[24px]" : "left-[3px]",
+        )}
+      />
+    </button>
+  );
+}
+
 /**
- * Organization Settings form — company_admin edits their own org's carpooling config.
- * Calls PATCH /api/organization/[id].
+ * Organization Settings form — company_admin edits their own org's carpooling config, restyled to
+ * the Coride vocabulary. Calls PATCH /api/organization/[id]. Same RHF form, field names, resolver
+ * and submit handler as before — only presentation changed.
  * SEAM with Slice C: fuelCostPerKm + travelCostPerKm + maintenanceMonthly are read by reports.
  */
 export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
@@ -32,6 +67,7 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
     defaultValues: {
       name: org.name,
       allowedEmailDomains: org.allowedEmailDomains,
+      headOffice: ((org.settings as Record<string, unknown> | null)?.headOffice as string) ?? "",
       currency: org.currency,
       fuelCostPerKm: parseFloat(String(org.fuelCostPerKm)) || 0,
       travelCostPerKm: parseFloat(String(org.travelCostPerKm)) || 0,
@@ -39,6 +75,9 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
       autoApproveDomain: org.autoApproveDomain,
     },
   });
+
+  const { register, handleSubmit, watch, setValue, formState } = form;
+  const autoApprove = watch("autoApproveDomain");
 
   async function onSubmit(values: OrganizationFormValues) {
     setSaving(true);
@@ -69,116 +108,163 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
     }
   }
 
+  const fieldError = (name: keyof OrganizationFormValues) =>
+    formState.errors[name]?.message as string | undefined;
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Company Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Company Details</CardTitle>
-            <CardDescription>Basic information about your organization.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <TextField
-              control={form.control}
-              name="name"
-              label="Company Name"
-              placeholder="Acme Mobility"
-            />
-            <div className="space-y-1.5">
-              <Label htmlFor="org-domains">Allowed Email Domains</Label>
-              <input
-                id="org-domains"
-                type="text"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="acme.dev, acme.com  (comma-separated)"
-                value={domainsInput}
-                onChange={(e) => setDomainsInput(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Employees with these email domains can self-register and join this org (Onboarding Path 3).
-              </p>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <Switch
-                id="org-auto-approve"
-                checked={form.watch("autoApproveDomain")}
-                onCheckedChange={(v) => form.setValue("autoApproveDomain", v)}
-              />
-              <div>
-                <Label htmlFor="org-auto-approve" className="font-medium">Auto-approve domain signups</Label>
-                <p className="text-xs text-muted-foreground">
-                  When on, domain-matched employees are immediately active. When off, they queue for approval.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Carpooling Cost Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Carpooling Configuration</CardTitle>
-            <CardDescription>
-              Cost parameters used by Slice C&apos;s financial reports and ride pricing.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <TextField
-              control={form.control}
-              name="currency"
-              label="Currency Code"
-              placeholder="INR"
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <TextField
-                control={form.control}
-                name="fuelCostPerKm"
-                label="Fuel Cost / km (₹)"
-                type="number"
-                placeholder="7.50"
-                description="Cost per km of fuel for ride pricing."
-              />
-              <TextField
-                control={form.control}
-                name="travelCostPerKm"
-                label="Travel Cost / km (₹)"
-                type="number"
-                placeholder="12.00"
-                description="Per-km rate for cost reports."
-              />
-            </div>
-            <TextField
-              control={form.control}
-              name="maintenanceMonthly"
-              label="Monthly Maintenance (₹)"
-              type="number"
-              placeholder="15000"
-              description="Monthly fleet maintenance line item for Financial Summary."
-            />
-          </CardContent>
-        </Card>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
-
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={saving} id="save-settings-btn">
-            {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : saved ? (
-              <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {saving ? "Saving…" : saved ? "Saved!" : "Save Settings"}
-          </Button>
-          {saved && (
-            <p className="text-sm text-muted-foreground">
-              Settings saved. Slice C's reports will use the updated cost values.
-            </p>
-          )}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      {/* Company details */}
+      <section className={`${coCard} p-5 sm:p-6`}>
+        <div className="mb-5">
+          <h3 className="m-0 font-display text-[17px] font-semibold text-[color:var(--ink)]">
+            Company details
+          </h3>
+          <p className="m-0 mt-1 text-[13px] text-[color:var(--ink-3)]">
+            Basic information about your organisation.
+          </p>
         </div>
-      </form>
-    </Form>
+
+        <div className="grid gap-4">
+          <label className="block">
+            <span className={LABEL_CLASS}>Company name</span>
+            <input {...register("name")} className={INPUT_CLASS} placeholder="Acme Mobility" />
+            {fieldError("name") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">{fieldError("name")}</p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={LABEL_CLASS}>Allowed email domains</span>
+            <input
+              id="org-domains"
+              type="text"
+              className={INPUT_CLASS}
+              placeholder="acme.dev, acme.com  (comma-separated)"
+              value={domainsInput}
+              onChange={(e) => setDomainsInput(e.target.value)}
+            />
+            <p className="mt-1.5 text-[12.5px] text-[color:var(--ink-3)]">
+              Employees with these email domains can self-register and join this org.
+            </p>
+          </label>
+
+          <label className="block">
+            <span className={LABEL_CLASS}>Head office</span>
+            <input
+              {...register("headOffice")}
+              className={INPUT_CLASS}
+              placeholder="Infocity, Gandhinagar"
+            />
+            {fieldError("headOffice") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">{fieldError("headOffice")}</p>
+            )}
+          </label>
+        </div>
+      </section>
+
+      {/* Carpooling configuration */}
+      <section className={`${coCard} p-5 sm:p-6`}>
+        <div className="mb-5">
+          <h3 className="m-0 font-display text-[17px] font-semibold text-[color:var(--ink)]">
+            Carpooling configuration
+          </h3>
+          <p className="m-0 mt-1 text-[13px] text-[color:var(--ink-3)]">
+            Cost parameters used by ride pricing and financial reports.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className={LABEL_CLASS}>Fuel cost / litre (₹)</span>
+            <input
+              {...register("fuelCostPerKm")}
+              type="number"
+              step="0.01"
+              className={INPUT_CLASS}
+              placeholder="7.50"
+            />
+            {fieldError("fuelCostPerKm") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">{fieldError("fuelCostPerKm")}</p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={LABEL_CLASS}>Travel cost / km (₹)</span>
+            <input
+              {...register("travelCostPerKm")}
+              type="number"
+              step="0.01"
+              className={INPUT_CLASS}
+              placeholder="12.00"
+            />
+            {fieldError("travelCostPerKm") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">{fieldError("travelCostPerKm")}</p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={LABEL_CLASS}>Currency</span>
+            <input {...register("currency")} className={INPUT_CLASS} placeholder="INR" />
+            {fieldError("currency") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">{fieldError("currency")}</p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={LABEL_CLASS}>Monthly maintenance (₹)</span>
+            <input
+              {...register("maintenanceMonthly")}
+              type="number"
+              step="0.01"
+              className={INPUT_CLASS}
+              placeholder="15000"
+            />
+            {fieldError("maintenanceMonthly") && (
+              <p className="mt-1.5 text-[12.5px] text-[color:var(--destructive)]">
+                {fieldError("maintenanceMonthly")}
+              </p>
+            )}
+          </label>
+        </div>
+
+        {/* Auto-approve vehicles */}
+        <div className="mt-4 flex items-center gap-4 rounded-[10px] border border-[color:var(--line)] bg-[color:var(--surface-2)] p-3.5">
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold text-[color:var(--ink)]">Auto-approve vehicles</div>
+            <div className="text-[12.5px] text-[color:var(--ink-3)]">
+              Skip manual review for known domains
+            </div>
+          </div>
+          <PillSwitch
+            checked={autoApprove}
+            onChange={(v) => setValue("autoApproveDomain", v)}
+            label="Auto-approve vehicles"
+          />
+        </div>
+      </section>
+
+      {error && <p className="text-[13px] text-[color:var(--destructive)]">{error}</p>}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          id="save-settings-btn"
+          className={`${coAmberBtn} px-5 py-3 text-[15px]`}
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : saved ? (
+            <Check className="h-4 w-4" />
+          ) : null}
+          {saving ? "Saving…" : saved ? "Saved" : "Save configuration"}
+        </button>
+        {saved && (
+          <p className="text-[13px] text-[color:var(--ink-3)]">
+            Settings saved. Reports will use the updated cost values.
+          </p>
+        )}
+      </div>
+    </form>
   );
 }

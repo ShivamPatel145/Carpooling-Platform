@@ -23,7 +23,6 @@ export interface DashboardWidget {
 
 export const dashboardConfig: DashboardWidget[] = [
   { key: "welcome", title: "Welcome", minRole: "employee", span: 4 },
-  { key: "my-demo-count", title: "My Items", minRole: "employee", span: 1 },
   { key: "open-tickets", title: "Open Tickets", minRole: "employee", span: 1 },
   { key: "unread-notifications", title: "Unread", minRole: "employee", span: 1 },
   { key: "pending-approvals", title: "Pending Approvals", minRole: "company_admin", span: 1 },

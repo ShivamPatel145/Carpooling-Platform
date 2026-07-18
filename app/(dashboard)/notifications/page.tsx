@@ -1,22 +1,52 @@
 import type { Metadata } from "next";
-import { Bell } from "lucide-react";
+import { desc, eq } from "drizzle-orm";
 import { requirePermissionPage } from "@/lib/session";
-import { PageHeader } from "@/components/page-header";
-import { ComingSoon } from "@/components/coming-soon";
+import { db } from "@/db";
+import { notification } from "@/db/schema";
+import {
+  NotificationsList,
+  type NotificationRow,
+} from "@/features/notification/components/notifications-list";
 
 export const metadata: Metadata = { title: "Notifications" };
 
-/** Stub — the notification list/read-toggle is wired build-day on the generic notification table. */
+/**
+ * Notifications feed. Server-fetches the signed-in user's rows from the generic notification table
+ * (owner-scoped by userId — this table has no orgId), newest first, and hands them to the Coride
+ * list which owns read/mark-all interaction. Shared by employees and company admins.
+ */
 export default async function NotificationsPage() {
-  await requirePermissionPage("notification", "read");
+  const session = await requirePermissionPage("notification", "read");
+
+  const rows = await db
+    .select()
+    .from(notification)
+    .where(eq(notification.userId, session.user.id))
+    .orderBy(desc(notification.createdAt))
+    .limit(100);
+
+  const initial: NotificationRow[] = rows.map((n) => ({
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    body: n.body ?? null,
+    href: n.href ?? null,
+    createdAt: new Date(n.createdAt).toISOString(),
+    isRead: n.isRead,
+  }));
+
   return (
     <div>
-      <PageHeader title="Notifications" description="Your in-app notifications." />
-      <ComingSoon
-        icon={Bell}
-        slice="Cross-cutting"
-        builtOn="the generic notification table and the /api/notifications endpoints"
-      />
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Notifications
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Match, ETA and payment alerts.
+        </p>
+      </div>
+
+      <NotificationsList initial={initial} />
     </div>
   );
 }

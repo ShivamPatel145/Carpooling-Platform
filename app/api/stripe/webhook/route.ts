@@ -4,7 +4,6 @@ import { db } from "@/db";
 import { payment, walletEntry } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
-// apiVersion omitted: the SDK's pinned default is used (its type literal is stricter than runtime).
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
@@ -39,12 +38,9 @@ export async function POST(req: Request) {
     }
 
     if (metadata.action === "wallet_recharge") {
-      if (event.type === "payment_intent.succeeded") {
-        const { userId, orgId } = metadata;
-        if (!userId || !orgId) {
-          return NextResponse.json({ error: "Missing userId/orgId in metadata" }, { status: 400 });
-        }
-        const amount = Number(metadata.amount);
+      const { userId, orgId } = metadata;
+      if (event.type === "payment_intent.succeeded" && userId && orgId) {
+        const amount = Number(metadata.amount ?? 0);
 
         // Find latest balance
         const [latest] = await db.select({ balanceAfter: walletEntry.balanceAfter })
