@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { TextField } from "@/components/form";
+import { coAmberBtn, coGhostBtn } from "@/components/co/ui";
 import { inviteFormSchema, type InviteFormValues } from "@/db/schema/invitation";
 import type { OrgRow } from "./org-columns";
 
@@ -65,7 +65,7 @@ export function InviteAdminDialog({ org, open, onOpenChange, onSuccess }: Invite
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
+            <UserPlus className="h-5 w-5 text-[color:var(--amber-strong)]" />
             Invite Company Admin
           </DialogTitle>
           <DialogDescription>
@@ -89,13 +89,22 @@ export function InviteAdminDialog({ org, open, onOpenChange, onSuccess }: Invite
             )}
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className={`${coGhostBtn} h-10 px-4 text-[14px]`}
+              >
                 Cancel
-              </Button>
-              <Button type="submit" disabled={loading} id="invite-admin-submit">
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                id="invite-admin-submit"
+                className={`${coAmberBtn} h-10 px-4 text-[14px]`}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                 {loading ? "Sending…" : "Send Invitation"}
-              </Button>
+              </button>
             </div>
           </form>
         </Form>

@@ -4,9 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Radio, Wifi } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState, Spinner, StatusBadge } from "@/components/states";
+import { coCard, CoAvatar, coInitials } from "@/components/co/ui";
 import { features } from "@/lib/client-features";
 import { getPusherClient } from "@/lib/pusher/client";
 import { PUSHER_EVENTS, tripChannel } from "@/lib/pusher/channels";
@@ -97,27 +96,30 @@ export function TrackView({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href={`/app/trips/${id}`}>
-          <ArrowLeft className="h-4 w-4" />
-          Trip details
-        </Link>
-      </Button>
+      <Link
+        href={`/app/trips/${id}`}
+        className="-ml-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[color:var(--ink-2)] transition hover:text-[color:var(--ink)]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Trip details
+      </Link>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-xl font-semibold tracking-tight">Live tracking</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="m-0 font-display text-[22px] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+            Live tracking
+          </h1>
+          <p className="m-0 mt-0.5 font-mono text-[13px] text-[color:var(--ink-3)]">
             {trip.origin.label} → {trip.destination.label}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={trip.status} />
           {live && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--amber-line)] bg-[color:var(--amber-tint)] px-2.5 py-1 text-[12px] font-semibold text-[color:var(--amber-strong)]">
               {features.realtime && socketLive ? (
                 <>
-                  <Radio className="h-3 w-3 text-accent" /> Live
+                  <Radio className="h-3 w-3" /> Live · en route
                 </>
               ) : (
                 <>
@@ -130,28 +132,55 @@ export function TrackView({ id }: { id: string }) {
       </div>
 
       {!live ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Live tracking is active only while a trip is under way.
-            </p>
-            <StatusBadge status={trip.status} />
-          </CardContent>
-        </Card>
+        <div className={`${coCard} flex flex-col items-center gap-3 py-12 text-center`}>
+          <p className="m-0 text-[14px] text-[color:var(--ink-2)]">
+            Live tracking is active only while a trip is under way.
+          </p>
+          <StatusBadge status={trip.status} />
+        </div>
       ) : (
         <>
-          <TrackingMap origin={trip.origin} destination={trip.destination} driver={driver} route={route} />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm">
+          <div className={`${coCard} overflow-hidden`}>
+            <TrackingMap origin={trip.origin} destination={trip.destination} driver={driver} route={route} />
+          </div>
+
+          {/* Arriving-in + driver card (comp) */}
+          <div className={`${coCard} flex flex-wrap items-center gap-4 p-5`}>
+            <div className="min-w-[130px]">
+              <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ink-3)]">
+                Arriving in
+              </div>
               {etaMin != null ? (
-                <>
-                  ETA <span className="font-mono tabular-nums text-accent">{etaMin} min</span>
-                </>
+                <div className="mt-0.5 flex items-baseline gap-1.5">
+                  <span className="font-mono text-[32px] font-semibold leading-none text-[color:var(--amber-strong)]">
+                    {etaMin}
+                  </span>
+                  <span className="text-[13px] text-[color:var(--ink-3)]">min to pickup</span>
+                </div>
               ) : (
-                <span className="text-muted-foreground">Waiting for the driver's location…</span>
+                <div className="mt-1 text-[13px] text-[color:var(--ink-3)]">Waiting for the driver&apos;s location…</div>
               )}
             </div>
-            {isDriver && <DriverLocationControls trip={trip} route={route} />}
+
+            <div className="hidden h-10 w-px bg-[color:var(--line)] sm:block" />
+
+            <div className="flex min-w-[180px] flex-1 items-center gap-3">
+              <CoAvatar initials={coInitials(trip.driver.name)} />
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-semibold text-[color:var(--ink)]">
+                  {trip.driver.name ?? "Driver"}
+                </div>
+                {trip.vehicleLabel && (
+                  <div className="truncate font-mono text-[12px] text-[color:var(--ink-3)]">{trip.vehicleLabel}</div>
+                )}
+              </div>
+            </div>
+
+            {isDriver && (
+              <div className="w-full sm:w-auto">
+                <DriverLocationControls trip={trip} route={route} />
+              </div>
+            )}
           </div>
         </>
       )}

@@ -44,8 +44,6 @@ export const statement = {
   setting: ["read", "update"],
   supportTicket: ["create", "read", "update", "assign", "resolve"],
   report: ["read", "export"],
-  // the CRUD copy template — kept live so features/_demo stays demonstrable
-  demoEntity: ["create", "read", "update", "delete", "approve"],
 } as const;
 
 export type Resource = keyof typeof statement;
@@ -91,7 +89,6 @@ export const roles: Record<Role, RolePermissions> = {
     supportTicket: ["create", "read"],
     report: ["read"],
     notification: ["read", "update"],
-    demoEntity: ["create", "read", "update", "delete"],
   },
 };
 

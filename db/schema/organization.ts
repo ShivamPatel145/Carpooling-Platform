@@ -46,6 +46,8 @@ export const organizationInsertSchema = createInsertSchema(organization, {
 export const organizationFormSchema = z.object({
   name: z.string().min(2, "Company name is required").max(160),
   allowedEmailDomains: z.array(z.string().min(3)).default([]),
+  /** registered office / head office — persisted in the settings jsonb, not a top-level column */
+  headOffice: z.string().max(200).optional().or(z.literal("")),
   currency: z.string().min(1).max(8).default("INR"),
   fuelCostPerKm: z.coerce.number().min(0).max(100000),
   travelCostPerKm: z.coerce.number().min(0).max(100000),

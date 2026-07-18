@@ -12,11 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { TextField } from "@/components/form";
+import { coAmberBtn, coGhostBtn } from "@/components/co/ui";
 import { organizationFormSchema, type OrganizationFormValues } from "@/db/schema/organization";
 
 interface CreateOrgDialogProps {
@@ -86,10 +86,10 @@ export function CreateOrgDialog({ onSuccess }: CreateOrgDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button id="create-org-btn">
-          <Building2 className="mr-2 h-4 w-4" />
-          New Organization
-        </Button>
+        <button type="button" id="create-org-btn" className={`${coAmberBtn} h-10 px-4 text-[14px]`}>
+          <Building2 className="h-4 w-4" strokeWidth={1.8} />
+          New organization
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[540px]">
         <DialogHeader>
@@ -191,13 +191,22 @@ export function CreateOrgDialog({ onSuccess }: CreateOrgDialogProps) {
             )}
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className={`${coGhostBtn} h-10 px-4 text-[14px]`}
+              >
                 Cancel
-              </Button>
-              <Button type="submit" disabled={loading} id="create-org-submit">
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {loading ? "Creating…" : "Create Organization"}
-              </Button>
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                id="create-org-submit"
+                className={`${coAmberBtn} h-10 px-4 text-[14px]`}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading ? "Creating…" : "Create organization"}
+              </button>
             </div>
           </form>
         </Form>

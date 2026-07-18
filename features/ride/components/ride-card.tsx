@@ -1,52 +1,61 @@
 "use client";
 
-import { ArrowRight, Clock, Users, IndianRupee, MapPin } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/states";
-import { formatDateTime } from "@/lib/utils";
+import { coCard, CoAvatar, CoRouteLine, CoSeatBadge, coInitials, splitDepartTime } from "@/components/co/ui";
 import type { RideWithMeta } from "@/features/ride/schema";
 
 /**
- * A compact ride summary card for search results + lists. Fare and seats use the mono/tabular face
- * (design-standards §3). `action` slots a Book button (results) or a Cancel menu (my rides).
+ * The Coride ride/trip card — a three-band article: driver header, the route line, and the
+ * fare/seats footer. `action` slots a Book button (search results) or a Cancel menu (my rides).
+ * Fares + times use the mono/tabular face (design-standards §3).
  */
 export function RideCard({ ride, action }: { ride: RideWithMeta; action?: React.ReactNode }) {
+  const { time, meta } = splitDepartTime(ride.departAt);
+  const km = ride.distanceKm ? `${Number(ride.distanceKm).toFixed(0)} km` : undefined;
+
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">{ride.origin.label}</span>
-            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">{ride.destination.label}</span>
+    <article className={`${coCard} overflow-hidden`}>
+      {/* Driver header */}
+      <div className="flex items-center gap-3 px-[18px] pb-[13px] pt-[15px]">
+        <CoAvatar initials={coInitials(ride.driverName)} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15px] font-semibold text-[color:var(--ink)]">
+            {ride.driverName ?? "Driver"}
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span className="font-mono">{formatDateTime(ride.departAt)}</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              <span className="font-mono tabular-nums">{ride.seatsAvailable}</span> of{" "}
-              <span className="font-mono tabular-nums">{ride.seatsTotal}</span> seats
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <IndianRupee className="h-3.5 w-3.5" />
-              <span className="font-mono tabular-nums">{Number(ride.farePerSeat).toFixed(0)}</span>
-              /seat
-            </span>
-            {ride.driverName && <span>· {ride.driverName}</span>}
-            {ride.distanceKm && (
-              <span className="font-mono">· {Number(ride.distanceKm).toFixed(0)} km</span>
-            )}
+          <div className="truncate font-mono text-[12px] text-[color:var(--ink-3)]">
+            {ride.vehicleModel ?? "Vehicle"}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <StatusBadge status={ride.status} />
-          {action}
+        <StatusBadge status={ride.status} />
+      </div>
+
+      {/* Route line */}
+      <div className="flex items-center gap-3.5 border-y border-[color:var(--line)] bg-[color:var(--surface-2)] px-[18px] py-3.5">
+        <div className="text-center">
+          <div className="font-mono text-[22px] font-semibold leading-none tracking-[-0.01em] text-[color:var(--ink)]">
+            {time}
+          </div>
+          <div className="mt-[3px] text-[11px] text-[color:var(--ink-3)]">{meta}</div>
         </div>
-      </CardContent>
-    </Card>
+        <CoRouteLine middle={km} />
+      </div>
+
+      {/* Fare + seats footer */}
+      <div className="flex flex-wrap items-center gap-3.5 px-[18px] py-3.5">
+        <CoSeatBadge>
+          {ride.seatsAvailable} of {ride.seatsTotal} seats
+        </CoSeatBadge>
+        <div className="min-w-0 flex-1 truncate text-[12px] text-[color:var(--ink-3)]">
+          {ride.origin.label} → {ride.destination.label}
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-[18px] font-semibold text-[color:var(--amber-strong)]">
+            ₹{Number(ride.farePerSeat).toFixed(0)}
+          </div>
+          <div className="text-[11px] text-[color:var(--ink-3)]">per seat</div>
+        </div>
+        {action}
+      </div>
+    </article>
   );
 }

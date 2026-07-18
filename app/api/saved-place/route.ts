@@ -8,7 +8,7 @@ import { withErrorHandler, ok, created } from "@/lib/api";
 
 /**
  * GET  /api/saved-place — the caller's own saved places (org-scoped + userId), newest first.
- * POST /api/saved-place — create one for the caller. (PRD §7.14 — copied from features/_demo.)
+ * POST /api/saved-place — create one for the caller. (PRD §7.14.)
  */
 export const GET = withErrorHandler(async () => {
   const { session, tenant } = await requirePermission("savedPlace", "read");

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { count, eq } from "drizzle-orm";
-import { Building2 } from "lucide-react";
 import { requireSuperAdminPage } from "@/lib/session";
 import { db } from "@/db";
 import { organization, user } from "@/db/schema";
-import { PageHeader } from "@/components/page-header";
 import { OrgTable } from "./org-table";
 
 export const metadata: Metadata = { title: "Organizations — Platform" };
@@ -34,11 +32,14 @@ export default async function PlatformOrgsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Organizations"
-        description="All registered tenants across the platform. Create orgs and invite their company admins here."
-        icon={Building2}
-      />
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Organizations
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Create tenants and appoint their company admins.
+        </p>
+      </div>
       <OrgTable initialRows={rows} />
     </div>
   );

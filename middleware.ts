@@ -13,20 +13,33 @@ import { authConfig } from "@/auth.config";
  */
 const { auth } = NextAuth(authConfig);
 
-/** Prefixes that require a signed-in user. Public routes (/, /login, /register) are excluded. */
+/**
+ * Prefixes that require a signed-in user. Public routes (/, /login, /register, /accept-invite) are
+ * excluded. These MUST track the real role homes from lib/session#homeForRole — /app (employee),
+ * /admin (company_admin), /platform (super_admin) — plus the shared employee surfaces.
+ */
 const PROTECTED_PREFIXES = [
-  "/dashboard",
+  "/app",
   "/admin",
-  "/manager",
-  "/approver",
+  "/platform",
+  "/reports",
+  "/wallet",
+  "/history",
+  "/pay",
   "/settings",
   "/notifications",
   "/support",
-  "/reports",
-  "/demo",
+  "/dashboard",
 ];
 
 const AUTH_PAGES = ["/login", "/register"];
+
+/** Edge-safe mirror of lib/session#homeForRole (can't import that — it pulls the Node auth stack). */
+function homeForRole(role: string | undefined): string {
+  if (role === "super_admin") return "/platform";
+  if (role === "company_admin") return "/admin";
+  return "/app";
+}
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -38,9 +51,9 @@ export default auth((req) => {
   );
   const isAuthPage = AUTH_PAGES.some((p) => path === p || path.startsWith(`${p}/`));
 
-  // Signed-in users shouldn't see the login/register pages.
+  // Signed-in users shouldn't see the login/register pages — send them to their role home.
   if (isAuthPage && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    return NextResponse.redirect(new URL(homeForRole(req.auth?.user?.role), nextUrl));
   }
 
   // Unauthenticated users hitting a protected prefix → login with a return path.

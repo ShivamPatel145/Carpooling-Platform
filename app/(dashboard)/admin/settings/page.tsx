@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Settings } from "lucide-react";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { requireRolePage } from "@/lib/session";
 import { db } from "@/db";
 import { organization } from "@/db/schema";
-import { PageHeader } from "@/components/page-header";
 import { OrgSettingsForm } from "@/features/organization/org-settings-form";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -27,11 +25,14 @@ export default async function AdminSettingsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Organization Settings"
-        description="Company details and carpooling configuration. Cost fields feed into Slice C's financial reports."
-        icon={Settings}
-      />
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Company Settings
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Domains, costs, and how carpooling works for your org.
+        </p>
+      </div>
       <OrgSettingsForm org={org} />
     </div>
   );
