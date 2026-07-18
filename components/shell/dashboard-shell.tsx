@@ -63,7 +63,7 @@ export function DashboardShell({
             department={department}
           />
           <TopbarTitle />
-          <NotificationsBell />
+          <NotificationsBell showViewAll={user.role !== "employee"} />
           <ThemeToggle />
         </header>
 

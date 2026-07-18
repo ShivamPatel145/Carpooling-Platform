@@ -56,7 +56,9 @@ export const navConfig: NavItem[] = [
 
   // ── Employee app (mode-switcher). roles:["employee"] keeps these out of admin sidebars. ──
   { title: "Dashboard", href: "/app", icon: LayoutDashboard, minRole: "employee", roles: ["employee"], group: "Overview" },
-  { title: "Notifications", href: "/notifications", icon: Bell, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
+  // Employees reach notifications from the topbar bell (a dropdown), not a sidebar page — company
+  // admins keep the full-page feed in their console.
+  { title: "Notifications", href: "/notifications", icon: Bell, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
   { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
 
   // ── Company admin console ───────────────────────────────────────────────────────────────

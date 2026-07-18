@@ -34,17 +34,9 @@ export function PublicHeader({ isAuthed }: { isAuthed: boolean }) {
             Open app
           </Link>
         ) : (
-          <>
-            <Link
-              href="/login"
-              className="hidden whitespace-nowrap rounded-[9px] px-3 py-2.5 text-[14.5px] font-semibold text-[color:var(--ink)] hover:text-[color:var(--amber-strong)] sm:inline-flex"
-            >
-              Sign in
-            </Link>
-            <Link href="/register" className={`${coAmberBtn} px-[18px] py-2.5 text-[14.5px]`}>
-              Get started
-            </Link>
-          </>
+          <Link href="/login" className={`${coAmberBtn} px-[18px] py-2.5 text-[14.5px]`}>
+            Sign in
+          </Link>
         )}
       </div>
     </header>
