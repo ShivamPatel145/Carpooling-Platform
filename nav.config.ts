@@ -11,7 +11,12 @@ import {
   Building2,
 } from "lucide-react";
 import type { Role } from "@/lib/permissions";
-import { roleHierarchy } from "@/lib/permissions";
+
+export const roleHierarchy: Record<Role, number> = {
+  super_admin: 100,
+  company_admin: 50,
+  employee: 10,
+};
 
 /**
  * SIDEBAR NAV — a CONFIG ARRAY. Adding a nav item is a DATA change here, never a layout edit

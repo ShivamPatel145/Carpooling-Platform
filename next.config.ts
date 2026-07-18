@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // React from node_modules while Next bundles a second copy for the route. We render the PDF in an
   // isolated Node subprocess (lib/pdf/render.ts → scripts/render-pdf) so exactly one React instance
   // is in play, sidestepping the bundler entirely. Kept external here for correctness + Vercel safety.
-  serverExternalPackages: ["@react-pdf/renderer"],
+  serverExternalPackages: ["@react-pdf/renderer", "pg"],
   images: {
     remotePatterns: [
       // UploadThing-served assets

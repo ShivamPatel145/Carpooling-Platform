@@ -1,5 +1,4 @@
 import { and, eq, type SQL } from "drizzle-orm";
-import { auth } from "@/auth";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import type { UserRole } from "@/db/schema/user";
 
@@ -165,6 +164,7 @@ export function scopedWhere(
  * ALWAYS the first line of a route handler / server action.
  */
 export async function requirePermission(resource: Resource, action: Action<typeof resource>) {
+  const { auth } = await import("@/auth");
   const session = await auth();
   if (!session?.user) throw new UnauthorizedError();
   const { role, orgId, id } = session.user;
@@ -184,6 +184,7 @@ export async function requirePermission(resource: Resource, action: Action<typeo
  * visible in code review rather than an accident. Use for the platform console routes.
  */
 export async function requireSuperAdmin() {
+  const { auth } = await import("@/auth");
   const session = await auth();
   if (!session?.user) throw new UnauthorizedError();
   if (session.user.role !== "super_admin") {
@@ -194,6 +195,7 @@ export async function requireSuperAdmin() {
 
 /** Require a minimum role tier (e.g. company_admin console). Refuses revoked access. */
 export async function requireRole(min: Role) {
+  const { auth } = await import("@/auth");
   const session = await auth();
   if (!session?.user) throw new UnauthorizedError();
   if (session.user.platformAccess === "revoked") {
@@ -207,6 +209,7 @@ export async function requireRole(min: Role) {
 
 /** Just require a signed-in, non-revoked user; returns the session. */
 export async function requireAuth() {
+  const { auth } = await import("@/auth");
   const session = await auth();
   if (!session?.user) throw new UnauthorizedError();
   if (session.user.platformAccess === "revoked") {
