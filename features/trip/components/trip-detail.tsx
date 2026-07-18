@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/utils";
 import { isLiveStatus, type TripParticipant } from "@/features/trip/schema";
 import { useTrip } from "@/features/trip/hooks";
 import { TripActions } from "@/features/trip/components/trip-actions";
+import { TripChat } from "@/features/message/components/trip-chat";
 
 /** Full trip detail — role-aware (driver sees passengers; passenger sees the driver). Auto-refreshes
  *  ETA/status while live via the polling hook. Renders loading / error / content states. */
@@ -105,6 +106,11 @@ export function TripDetail({ id }: { id: string }) {
           </CardContent>
         </Card>
       </div>
+
+      <TripChat
+        tripId={trip.id}
+        title={trip.counterparty?.name ? `Chat with ${trip.counterparty.name}` : "Trip chat"}
+      />
     </div>
   );
 }
