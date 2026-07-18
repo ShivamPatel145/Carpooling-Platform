@@ -32,7 +32,7 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 │   ├── form/                     #   RHF field wrappers (text/select/date/switch/file) over ui/form
 │   ├── data-table/               #   TanStack Table shell (pagination, filters, column header)
 │   ├── shell/                    #   app chrome: dashboard shell, nav, mobile nav, user menu, bell
-│   ├── auth/                     #   login / register / google-button forms
+│   ├── auth/                     #   login / register forms (email + password)
 │   ├── dashboard/                #   dashboard widgets (stat-card)
 │   ├── marketing/                #   public site chrome (public header)
 │   ├── motion/                   #   Framer Motion helpers (reveal)

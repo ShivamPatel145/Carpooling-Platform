@@ -67,16 +67,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     /**
-     * Extends the edge-safe jwt callback with a DB read: OAuth sign-ins (Google) don't carry a
-     * role, so on first sign-in we look it up from the adapter-created user row. Runs on Node.
+     * Extends the edge-safe jwt callback with a DB read: on an explicit session refresh
+     * (trigger === "update") — or if the token is ever missing its tenancy context — reload the
+     * full role/org from the DB so scoping + access checks stay correct. Runs on Node.
      */
     async jwt({ token, user: signedInUser, trigger }) {
       // Delegate id/role-from-user to the shared callback first.
       const base = await authConfig.callbacks!.jwt!({ token, user: signedInUser } as never);
       const t = base as typeof token;
 
-      // If we still have no role (e.g. Google first sign-in) or an explicit refresh, load the
-      // full tenancy context from the DB so scoping + access checks have it.
+      // Reload tenancy context from the DB on refresh, or if it's somehow absent.
       if ((!t.role || t.orgId === undefined || trigger === "update") && t.sub) {
         const row = await db.query.user.findFirst({
           where: eq(user.id, t.sub),
@@ -91,13 +91,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return t;
-    },
-  },
-  events: {
-    /** First-ever sign-in via OAuth: the adapter just created the user with the default role. */
-    async createUser() {
-      // default role is set by the DB column default ("user"); nothing to do here yet.
-      // Hook kept as the seam for build-day domain onboarding logic.
     },
   },
 });

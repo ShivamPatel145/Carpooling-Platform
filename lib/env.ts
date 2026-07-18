@@ -19,8 +19,6 @@ const envSchema = z.object({
   DB_DRIVER: z.enum(["postgres", "neon"]).default("postgres"),
 
   // ── Optional integrations (feature degrades if absent) ───────────────────────────────────
-  AUTH_GOOGLE_ID: z.string().optional(),
-  AUTH_GOOGLE_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   UPLOADTHING_TOKEN: z.string().optional(),
 
@@ -55,7 +53,6 @@ export const env = loadEnv();
 
 /** Feature flags derived from which optional integrations are configured. */
 export const features = {
-  googleAuth: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
   email: Boolean(env.RESEND_API_KEY),
   uploads: Boolean(env.UPLOADTHING_TOKEN),
   realtime: Boolean(

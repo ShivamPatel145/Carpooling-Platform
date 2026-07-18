@@ -11,7 +11,7 @@ arrive any hour, so it must stay green at every checkpoint.** A broken `main` de
    - `DATABASE_URL` → the **pooled** Neon `main` connection string (production DB, not a dev branch).
    - `AUTH_SECRET` → a fresh production secret (`npx auth secret`).
    - `NEXT_PUBLIC_APP_URL` → the deployed URL (e.g. `https://<project>.vercel.app`).
-   - Optional feature vars (`AUTH_GOOGLE_*`, `RESEND_API_KEY`, `UPLOADTHING_TOKEN`,
+   - Optional feature vars (`RESEND_API_KEY`, `UPLOADTHING_TOKEN`,
      `NEXT_PUBLIC_UPLOADS_ENABLED`) as those features are turned on.
    - **Carpooling integration vars** — for the full demo loop:
      - Pusher (live tracking + chat): `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`,
