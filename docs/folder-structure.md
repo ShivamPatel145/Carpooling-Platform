@@ -8,16 +8,18 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 ├── app/                          # Next.js App Router — routes, layouts, API
 │   ├── (auth)/                   #   route group: login, register, auth actions (own layout)
 │   ├── (dashboard)/              #   route group: signed-in app (dashboard, app/*, admin/*, platform/*)
-│   │   ├── app/                  #     employee mode-switcher: find/offer/rides/vehicles/trips/wallet
-│   │   ├── admin/                #     company-admin pages (users, settings, vehicles)
+│   │   ├── app/                  #     employee mode-switcher: find/offer/rides/vehicles/trips
+│   │   ├── pay/ wallet/ history/ #     employee payments, wallet, ride history
+│   │   ├── reports/ settings/ support/ notifications/  # reports, settings, help, notifications
+│   │   ├── admin/                #     company-admin console (users, vehicles, settings, activity)
 │   │   └── platform/             #     super-admin console (organizations)
 │   ├── api/                      #   REST route handlers (see docs/api.md)
 │   │   ├── auth/                 #     Auth.js handler + credentials register
 │   │   ├── vehicle/ ride/ booking/  # Slice A ride engine (reference CRUD shape)
-│   │   ├── trip/ saved-place/ message/  # Slice B trips, tracking, chat
-│   │   ├── payment/ wallet/ report/     # Slice C payments, wallet, reports
+│   │   ├── trip/ saved-place/ message/ pusher/  # Slice B trips, tracking, chat, realtime auth
+│   │   ├── payment/ wallet/ stripe/ report/ history/  # Slice C payments, wallet, webhook, reports
 │   │   ├── organization/ invitation/ user/  # Slice D tenancy & admin
-│   │   ├── activity-log/         #     audit-trail read endpoint (admin/manager)
+│   │   ├── activity-log/         #     audit-trail read endpoint (company-admin+)
 │   │   ├── notifications/        #     notifications stats (unread count)
 │   │   └── uploadthing/          #     UploadThing file router
 │   ├── layout.tsx                #   root layout (fonts, providers, theme) — SHARED, integrator
@@ -46,9 +48,9 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 │   │   ├── index.ts              #     barrel
 │   │   └── components/           #     list / create-dialog / row-actions
 │   ├── ride/                     #   Slice A — offer/find/book engine (+ RouteMap, location field)
-│   ├── trip/ chat/ saved-place/  #   Slice B — trips, tracking, chat, saved places
-│   ├── payment/ wallet/ report/  #   Slice C — payments, wallet, reports
-│   ├── organization/ invitation/ user/  # Slice D — tenancy & admin
+│   ├── trip/ message/ saved-place/  # Slice B — trips, tracking, chat, saved places
+│   ├── payment/ wallet/ report/ history/  # Slice C — payments, wallet, reports, ride history
+│   ├── organization/ admin-users/ admin-vehicles/  # Slice D — tenancy & admin consoles
 │   └── activity-log/             #   read-only audit-trail slice (viewer over the generic table)
 │
 ├── db/                           # Database layer (Drizzle + Neon)
@@ -80,12 +82,11 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 ├── public/                       # Static assets
 │
 ├── docs/                         # This documentation
+│   ├── PRD.md                    #   the build spec — single source of truth
 │   ├── design-standards.md       #   visual design law (do not overwrite)
-│   ├── wireframe/                #   ODOO wireframe lands here on build day
-│   └── hackathon/                #   team handoff notes (TODAY / TOMORROW / TEAM-HANDOFF)
-│
-├── prompts/                      # Reusable Claude prompt library (one .md per task category)
-│                                 #   parameterized with {{entity}} / {{role}} / {{feature}}
+│   ├── team-ownership.md         #   who owns which slice / tables / routes
+│   ├── wireframe-map.md          #   1:1 map from wireframe screens to routes
+│   └── wireframe/                #   the ODOO Excalidraw wireframe (reference mockup)
 │
 ├── .claude/skills/               # Project skills that gate conventions
 │   ├── design-standards/         #   visual law
@@ -112,13 +113,13 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 
 ## Where does my code go?
 
-| I'm building…                     | Put it in…                                                   |
-| --------------------------------- | ----------------------------------------------------------- |
-| A new entity's screens            | `features/<entity>/` (copy `features/vehicle/`)             |
-| A new entity's table              | `db/schema/<entity>.ts` (+ barrel line via integrator)      |
-| A new entity's API                | `app/api/<entity>/` (copy the `vehicle` route shape)        |
-| A new page/route                  | `app/(dashboard)/…` (or a new route group)                  |
-| Shared UI primitive               | `components/ui/` (prefer shadcn) or `components/<group>/`   |
-| Cross-cutting logic               | `lib/…` (route through an existing utility — don't duplicate)|
-| A reusable client hook            | `hooks/`                                                    |
-| A reusable Claude prompt          | `prompts/<category>.md`                                     |
+| I'm building…              | Put it in…                                                    |
+| -------------------------- | ------------------------------------------------------------- |
+| A new entity's screens     | `features/<entity>/` (copy `features/vehicle/`)               |
+| A new entity's table       | `db/schema/<entity>.ts` (+ barrel line via integrator)        |
+| A new entity's API         | `app/api/<entity>/` (copy the `vehicle` route shape)          |
+| A new page/route           | `app/(dashboard)/…` (or a new route group)                    |
+| Shared UI primitive        | `components/ui/` (prefer shadcn) or `components/<group>/`     |
+| Cross-cutting logic        | `lib/…` (route through an existing utility — don't duplicate) |
+| A reusable client hook     | `hooks/`                                                      |
+| A cross-cutting convention | a skill under `.claude/skills/` (integrator)                  |

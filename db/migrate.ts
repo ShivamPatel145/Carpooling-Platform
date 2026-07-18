@@ -1,13 +1,14 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-// ── Neon serverless driver (disabled — using local Postgres for dev) ──────────────────────────
-// import { neon } from "@neondatabase/serverless";
-// import { drizzle } from "drizzle-orm/neon-http";
-// import { migrate } from "drizzle-orm/neon-http/migrator";
+// Both drivers are kept: local Postgres for the hackathon, Neon for hosting. DB_DRIVER selects
+// (default "postgres"; auto-uses Neon for a neon.tech URL). Mirrors db/index.ts.
 import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
+import { neon } from "@neondatabase/serverless";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { migrate as migrateNeon } from "drizzle-orm/neon-http/migrator";
 
 /**
  * Applies the generated SQL migrations in db/migrations against DATABASE_URL.
@@ -18,15 +19,22 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set.");
 
-  // const sql = neon(url);
-  // const db = drizzle(sql);
-  const pool = new Pool({ connectionString: url });
-  const db = drizzle(pool);
+  const useNeon =
+    process.env.DB_DRIVER === "neon" ||
+    (process.env.DB_DRIVER !== "postgres" && /neon\.tech/i.test(url));
 
   console.log("⏳ Running migrations…");
-  const start = Date.now();
-  await migrate(db, { migrationsFolder: "./db/migrations" });
-  console.log(`✅ Migrations complete in ${Date.now() - start}ms`);
+  const started = Date.now();
+  if (useNeon) {
+    const db = drizzleNeon(neon(url));
+    await migrateNeon(db, { migrationsFolder: "./db/migrations" });
+    console.log(`✅ Migrations complete in ${Date.now() - started}ms`);
+    process.exit(0);
+  }
+  const pool = new Pool({ connectionString: url });
+  const db = drizzlePg(pool);
+  await migratePg(db, { migrationsFolder: "./db/migrations" });
+  console.log(`✅ Migrations complete in ${Date.now() - started}ms`);
   process.exit(0);
 }
 

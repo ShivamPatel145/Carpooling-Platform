@@ -8,8 +8,15 @@ import { z } from "zod";
  */
 const envSchema = z.object({
   // ── Required to boot ─────────────────────────────────────────────────────────────────────
-  DATABASE_URL: z.string().url("DATABASE_URL must be a valid Neon pooled connection string"),
+  DATABASE_URL: z.string().url("DATABASE_URL must be a valid Postgres connection string"),
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required (generate with: npx auth secret)"),
+
+  // ── Database driver select ───────────────────────────────────────────────────────────────
+  // "postgres" (default) → node-postgres against a local/standard Postgres (hackathon setup).
+  // "neon"                → Neon's serverless HTTP driver (use for Vercel/Neon hosting).
+  // Both code paths live in db/index.ts; flip this one var to switch. Auto-detects "neon" when the
+  // URL host looks like Neon and the flag is left at its default.
+  DB_DRIVER: z.enum(["postgres", "neon"]).default("postgres"),
 
   // ── Optional integrations (feature degrades if absent) ───────────────────────────────────
   AUTH_GOOGLE_ID: z.string().optional(),

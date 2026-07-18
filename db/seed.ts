@@ -1,11 +1,11 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-// ── Neon serverless driver (disabled — using local Postgres for dev) ──────────────────────────
-// import { neon } from "@neondatabase/serverless";
-// import { drizzle } from "drizzle-orm/neon-http";
+// Both drivers kept: local Postgres for the hackathon, Neon for hosting (DB_DRIVER selects).
 import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import { neon } from "@neondatabase/serverless";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
 import { randomBytes, scryptSync } from "crypto";
 import * as schema from "./schema";
@@ -43,9 +43,14 @@ function hashPassword(password: string): string {
 }
 
 const DEMO_PASSWORD = "Password123!";
-// const db = drizzle(neon(process.env.DATABASE_URL!), { schema, casing: "snake_case" });
-const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
-const db = drizzle(pool, { schema, casing: "snake_case" });
+const seedUrl = process.env.DATABASE_URL!;
+const seedUseNeon =
+  process.env.DB_DRIVER === "neon" ||
+  (process.env.DB_DRIVER !== "postgres" && /neon\.tech/i.test(seedUrl));
+// One unified type across drivers (identical query-builder surface) — see db/index.ts.
+const db: NodePgDatabase<typeof schema> = seedUseNeon
+  ? (drizzleNeon(neon(seedUrl), { schema, casing: "snake_case" }) as unknown as NodePgDatabase<typeof schema>)
+  : drizzlePg(new Pool({ connectionString: seedUrl }), { schema, casing: "snake_case" });
 
 type SeededUser = { id: string; email: string };
 
