@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1784355874800,
-      "tag": "0000_nosy_alice",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1784379612459,
-      "tag": "0001_misty_phantom_reporter",
+      "when": 1784394474970,
+      "tag": "0000_grey_wasp",
       "breakpoints": true
     }
   ]

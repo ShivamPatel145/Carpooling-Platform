@@ -35,3 +35,11 @@ export function useRechargeWallet() {
       toast({ variant: "destructive", title: "Couldn't initiate recharge", description: err.message }),
   });
 }
+
+export function useSimulateRecharge() {
+  return useMutation({
+    mutationFn: async (amount: number) => {
+      return api.post<{ success: boolean; balance: number }>("/api/wallet/simulate-payment", { amount });
+    },
+  });
+}

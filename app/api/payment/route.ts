@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { db } from "@/db";
-import { payment, walletEntry, booking, trip } from "@/db/schema";
+import { payment, walletEntry, booking, trip, ride } from "@/db/schema";
 import { requirePermission } from "@/lib/permissions";
 import { withErrorHandler, ok } from "@/lib/api";
 import { paymentFormSchema } from "@/features/payment/schema";
@@ -59,6 +59,29 @@ export const POST = withErrorHandler(async (req: Request) => {
       refId: p.id,
       balanceAfter: (currentBalance - amount).toString(),
     });
+
+    // Find the driver to credit them
+    const [r] = await db.select().from(ride).where(eq(ride.id, b.rideId));
+    if (r) {
+      const [latestDriver] = await db.select({ balanceAfter: walletEntry.balanceAfter })
+        .from(walletEntry)
+        .where(eq(walletEntry.userId, r.driverId))
+        .orderBy(desc(walletEntry.createdAt))
+        .limit(1);
+
+      const currentDriverBalance = latestDriver ? Number(latestDriver.balanceAfter) : 0;
+      const newDriverBalance = currentDriverBalance + amount;
+
+      // Credit the driver's wallet
+      await db.insert(walletEntry).values({
+        orgId: tenant.orgId!,
+        userId: r.driverId,
+        delta: amount.toString(),
+        reason: "ride_payment",
+        refId: p.id,
+        balanceAfter: newDriverBalance.toString(),
+      });
+    }
 
     // Update trip status
     await db.update(trip).set({ status: "payment_completed" }).where(eq(trip.rideId, b.rideId));

@@ -6,10 +6,12 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useRechargeWallet } from "@/features/wallet/hooks";
+import { useRechargeWallet, useSimulateRecharge } from "@/features/wallet/hooks";
 import { coAmberBtn } from "@/components/co/ui";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import QRCode from "react-qr-code";
+import { useRouter } from "next/navigation";
 
 const PRESETS = [200, 500, 1000] as const;
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -23,10 +25,13 @@ const stripePromise = pk ? loadStripe(pk) : null;
 export function WalletRecharge() {
   const [amount, setAmount] = React.useState<number>(500);
   const [clientSecret, setClientSecret] = React.useState<string | null>(null);
+  const [showNativeQR, setShowNativeQR] = React.useState(false);
   const initiate = useRechargeWallet();
+  const simulateRecharge = useSimulateRecharge();
   const qc = useQueryClient();
+  const router = useRouter();
 
-  async function start() {
+  async function startStripe() {
     if (!stripePromise) {
       toast({
         variant: "destructive",
@@ -39,10 +44,20 @@ export function WalletRecharge() {
     if (res?.clientSecret) setClientSecret(res.clientSecret);
   }
 
+  async function simulateNativePayment() {
+    await simulateRecharge.mutateAsync(amount);
+    toast({ variant: "success", title: "Wallet recharged", description: "Your balance is updated natively." });
+    setShowNativeQR(false);
+    qc.invalidateQueries({ queryKey: ["wallet"] });
+    router.refresh();
+  }
+
   function done() {
     setClientSecret(null);
     qc.invalidateQueries({ queryKey: ["wallet"] });
   }
+
+  const nativeUpiLink = `upi://pay?pa=coride@upi&pn=Coride&am=${amount}&cu=INR`;
 
   return (
     <div>
@@ -65,15 +80,49 @@ export function WalletRecharge() {
           </button>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={start}
-        disabled={initiate.isPending}
-        className={cn(coAmberBtn, "w-full px-4 py-2.5 text-[14px]")}
-      >
-        {initiate.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-        Add ₹{amount} via UPI
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={startStripe}
+          disabled={initiate.isPending}
+          className={cn(coAmberBtn, "flex-1 px-4 py-2.5 text-[14px]")}
+        >
+          {initiate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />}
+          Stripe UPI
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowNativeQR(true)}
+          className="flex-1 rounded-[10px] border border-[color:var(--line-2)] bg-[color:var(--surface)] text-[color:var(--ink-2)] hover:border-[color:var(--ink-3)] font-semibold text-[14px] px-4 py-2.5 transition"
+        >
+          Native QR
+        </button>
+      </div>
+
+      {/* Native QR Modal */}
+      <Dialog open={showNativeQR} onOpenChange={setShowNativeQR}>
+        <DialogContent className="sm:max-w-[360px] text-center">
+          <DialogHeader>
+            <DialogTitle className="text-center">Scan to Pay ₹{amount}</DialogTitle>
+            <DialogDescription className="text-center">Use any UPI app (GPay, PhonePe, Paytm)</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center p-4 bg-white rounded-xl my-4">
+            <QRCode value={nativeUpiLink} size={200} />
+          </div>
+          <p className="text-xs text-[color:var(--ink-3)] mb-4 font-mono break-all bg-gray-50 p-2 rounded">
+            {nativeUpiLink}
+          </p>
+          <button
+            type="button"
+            onClick={simulateNativePayment}
+            disabled={simulateRecharge.isPending}
+            className={cn(coAmberBtn, "w-full px-4 py-2.5 text-[14px]")}
+          >
+            {simulateRecharge.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />}
+            Simulate Payment Success
+          </button>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!clientSecret} onOpenChange={(v) => !v && setClientSecret(null)}>
         <DialogContent className="sm:max-w-[430px]">
