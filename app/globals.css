@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * COLOUR SYSTEM — shadcn neutral base (LOCKED) + one accent token.
+ * Values are HSL triplets (no hsl() wrapper) consumed via hsl(var(--x)) in tailwind.config.ts.
+ * See docs/design-standards.md and lib/design-tokens.ts.
+ *
+ * ►► BUILD-DAY ACCENT SWAP: change --accent and --accent-foreground in BOTH :root and .dark
+ *    below (and the ACCENT constant in lib/design-tokens.ts). That is the entire swap.
+ *    No purple/violet. No gradients. Verify WCAG AA after.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    /* primary = near-black neutral (the confident neutral base) */
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 40%; /* AA on white: 4.76:1 */
+
+    /* ▼▼▼ THE ONE DOMAIN TOKEN — placeholder: slate-700. Swap on build day. ▼▼▼ */
+    --accent: 175 77% 26%; /* teal-700 #0f766e — carpooling; 5.55:1 on white and under white text */
+    --accent-foreground: 0 0% 100%;
+    /* ▲▲▲ ------------------------------------------------------------------ ▲▲▲ */
+
+    --destructive: 0 72% 51%; /* red-600 */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 29%; /* green-700 — AA on white */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 81% 40%; /* amber-700 — AA on white */
+    --warning-foreground: 0 0% 100%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 175 77% 26%; /* focus ring tracks the accent (teal-700) */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 5.5%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 5.5%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%; /* AA on near-black: 7.7:1 */
+
+    /* ▼▼▼ THE ONE DOMAIN TOKEN (dark) — lightened placeholder for contrast on dark. ▼▼▼ */
+    --accent: 172 66% 50%; /* teal-400 #2dd4bf — carpooling accent on dark; 10.61:1 on near-black */
+    --accent-foreground: 0 0% 9%;
+    /* ▲▲▲ ------------------------------------------------------------------------- ▲▲▲ */
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 60% 45%;
+    --success-foreground: 0 0% 9%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 9%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 172 66% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  /* Data/mono face: tabular numerals so figures align in the DataTable (§3). */
+  .font-mono,
+  code,
+  kbd,
+  pre {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Display face for headings by default (can be overridden per element). */
+  h1, h2, h3, h4 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+  /* Visible keyboard focus everywhere — §7 quality floor. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* Respect reduced-motion globally — §6. Framer Motion also checks this per-component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
