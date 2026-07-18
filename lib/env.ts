@@ -1,0 +1,48 @@
+import { z } from "zod";
+
+/**
+ * Environment validation — fails fast with a readable error instead of an undefined-at-runtime
+ * surprise at hour 14. Required vars gate boot; integration vars (email, uploads, OAuth) are
+ * optional so the app runs with only DATABASE_URL + AUTH_SECRET during Phase 0, degrading those
+ * features gracefully. See .env.example for the full list with comments.
+ */
+const envSchema = z.object({
+  // ── Required to boot ─────────────────────────────────────────────────────────────────────
+  DATABASE_URL: z.string().url("DATABASE_URL must be a valid Neon pooled connection string"),
+  AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required (generate with: npx auth secret)"),
+
+  // ── Optional integrations (feature degrades if absent) ───────────────────────────────────
+  AUTH_GOOGLE_ID: z.string().optional(),
+  AUTH_GOOGLE_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  UPLOADTHING_TOKEN: z.string().optional(),
+
+  // ── Public ───────────────────────────────────────────────────────────────────────────────
+  NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),
+
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+});
+
+/**
+ * Parsed, typed env. In production a missing required var throws at import time (fail fast).
+ * We read from process.env once and freeze the result.
+ */
+function loadEnv() {
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map((i) => `  • ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
+    throw new Error(`❌ Invalid environment variables:\n${issues}\n`);
+  }
+  return parsed.data;
+}
+
+export const env = loadEnv();
+
+/** Feature flags derived from which optional integrations are configured. */
+export const features = {
+  googleAuth: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
+  email: Boolean(env.RESEND_API_KEY),
+  uploads: Boolean(env.UPLOADTHING_TOKEN),
+} as const;
