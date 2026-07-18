@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
-  Boxes,
   Bell,
   Settings,
   Users,
@@ -49,7 +48,6 @@ export const navConfig: NavItem[] = [
 
   // ── Employee app (mode-switcher). roles:["employee"] keeps these out of admin sidebars. ──
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, minRole: "employee", roles: ["employee"], group: "Overview" },
-  { title: "Demo Entities", href: "/demo", icon: Boxes, minRole: "employee", roles: ["employee"], group: "Work" },
   { title: "Notifications", href: "/notifications", icon: Bell, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
   { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
 

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, count, eq } from "drizzle-orm";
-import { Boxes, Bell, LifeBuoy, CheckCircle2, Users } from "lucide-react";
+import { Car, Route, TicketCheck, Bell, CheckCircle2, Users } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { db } from "@/db";
-import { demoEntity, notification, supportTicket, user } from "@/db/schema";
+import { vehicle, ride, booking, notification, user } from "@/db/schema";
 import { atLeast } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -14,24 +14,22 @@ import { Reveal, RevealItem } from "@/components/motion/reveal";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-/** Server component — computes REAL counts (design-standards §1: no fabricated stats). */
+/** Server component — computes REAL, scoped counts (design-standards §1: no fabricated stats). */
 export default async function DashboardPage() {
   const session = await requireSession();
-  const { id: userId, role, name } = session.user;
+  const { id: userId, orgId, role, name } = session.user;
 
   // Real, scoped counts. Parallelized.
-  const [myItems, unread, myOpenTickets, pendingApprovals, totalUsers] = await Promise.all([
-    db.select({ n: count() }).from(demoEntity).where(eq(demoEntity.ownerId, userId)),
+  const [myVehicles, myRides, myBookings, unread, pendingApprovals, totalUsers] = await Promise.all([
+    db.select({ n: count() }).from(vehicle).where(eq(vehicle.ownerId, userId)),
+    db.select({ n: count() }).from(ride).where(eq(ride.driverId, userId)),
+    db.select({ n: count() }).from(booking).where(eq(booking.passengerId, userId)),
     db
       .select({ n: count() })
       .from(notification)
       .where(and(eq(notification.userId, userId), eq(notification.isRead, false))),
-    db
-      .select({ n: count() })
-      .from(supportTicket)
-      .where(and(eq(supportTicket.requesterId, userId), eq(supportTicket.status, "open"))),
     atLeast(role, "company_admin")
-      ? db.select({ n: count() }).from(demoEntity).where(eq(demoEntity.status, "draft"))
+      ? db.select({ n: count() }).from(vehicle).where(eq(vehicle.approvalStatus, "inactive"))
       : Promise.resolve([{ n: 0 }]),
     atLeast(role, "company_admin")
       ? db.select({ n: count() }).from(user)
@@ -44,23 +42,26 @@ export default async function DashboardPage() {
     <div>
       <PageHeader
         title={`Welcome back, ${firstName}`}
-        description="Here's what's happening across your workspace."
+        description="Ride together, save together — here's your commute at a glance."
       />
 
       <Reveal className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <RevealItem>
-          <StatCard label="My items" value={myItems[0]?.n ?? 0} icon={Boxes} hint="Records you own" />
+          <StatCard label="My vehicles" value={myVehicles[0]?.n ?? 0} icon={Car} hint="Cars you can drive" />
+        </RevealItem>
+        <RevealItem>
+          <StatCard label="Rides offered" value={myRides[0]?.n ?? 0} icon={Route} hint="As a driver" />
+        </RevealItem>
+        <RevealItem>
+          <StatCard label="Seats booked" value={myBookings[0]?.n ?? 0} icon={TicketCheck} hint="As a passenger" />
         </RevealItem>
         <RevealItem>
           <StatCard label="Unread" value={unread[0]?.n ?? 0} icon={Bell} hint="Notifications" />
         </RevealItem>
-        <RevealItem>
-          <StatCard label="Open tickets" value={myOpenTickets[0]?.n ?? 0} icon={LifeBuoy} hint="Raised by you" />
-        </RevealItem>
         {atLeast(role, "company_admin") && (
           <RevealItem>
             <StatCard
-              label="Pending approvals"
+              label="Vehicles to approve"
               value={pendingApprovals[0]?.n ?? 0}
               icon={CheckCircle2}
               hint="Awaiting review"
@@ -77,20 +78,19 @@ export default async function DashboardPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Get started</CardTitle>
+            <CardTitle>Get moving</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              This workspace is scaffolded and ready. The demo entity in{" "}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">features/_demo</code>{" "}
-              is the working CRUD template every feature copies.
+              Find a colleague heading your way, or offer a seat on your own commute and share the
+              cost.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
-                <Link href="/demo">Open demo entities</Link>
+                <Link href="/app/find">Find a ride</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link href="/support">Raise a ticket</Link>
+                <Link href="/app/offer">Offer a ride</Link>
               </Button>
             </div>
           </CardContent>

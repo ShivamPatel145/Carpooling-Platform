@@ -42,6 +42,3 @@ export * from "./message";
 // ── Carpooling domain — Slice C (payments/wallet) ───────────────────────────────────────────
 export * from "./payment";
 export * from "./wallet-entry";
-
-// ── The CRUD copy template (keep — the reference every slice copies) ────────────────────────
-export * from "./demo-entity";

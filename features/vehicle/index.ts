@@ -1,6 +1,6 @@
 /**
- * features/vehicle — an employee's registered cars (Slice A). Copied from features/_demo/ and
- * adapted: orgId-scoped queries (scopedWhere), ownership-scoped edit/delete, approval gate.
+ * features/vehicle — an employee's registered cars (Slice A). orgId-scoped queries (scopedWhere),
+ * ownership-scoped edit/delete, admin approval gate.
  *
  *   schema.ts   → the ONE Zod schema (re-exported from db/schema/vehicle), shared with the API
  *   hooks.ts    → TanStack Query hooks + mutations (invalidate on success, toast)

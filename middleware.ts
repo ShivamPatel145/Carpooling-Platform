@@ -16,6 +16,7 @@ const { auth } = NextAuth(authConfig);
 /** Prefixes that require a signed-in user. Public routes (/, /login, /register) are excluded. */
 const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/app",
   "/admin",
   "/manager",
   "/approver",
@@ -23,7 +24,6 @@ const PROTECTED_PREFIXES = [
   "/notifications",
   "/support",
   "/reports",
-  "/demo",
 ];
 
 const AUTH_PAGES = ["/login", "/register"];
