@@ -3,8 +3,6 @@
 import { useWalletEntries } from "@/features/wallet/hooks";
 import { walletColumns } from "@/features/wallet/columns";
 import { DataTable } from "@/components/data-table";
-import { EmptyState, ErrorState, LoadingState } from "@/components/states";
-import { Card } from "@/components/ui/card";
 
 export function WalletList() {
   const { data, isLoading, isError, refetch } = useWalletEntries();
