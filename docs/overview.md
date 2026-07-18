@@ -40,17 +40,17 @@ The demo loop is driven entirely by `employee`; `company_admin` and `super_admin
 
 Every mandatory module from the PRD maps to one slice. Slice ownership: `docs/team-ownership.md`.
 
-| # | Requirement                                        | Slice | Built on                                       | Status |
-| - | -------------------------------------------------- | ----- | ---------------------------------------------- | ------ |
-| 1 | Three roles + RBAC + multi-tenancy                 | D     | Auth.js + `lib/permissions.ts` (`scopedWhere`) | done   |
-| 2 | Org onboarding — 3 paths (bootstrap/invite/domain) | D     | `invitation` table + domain match              | done   |
-| 3 | Vehicle management + admin approval                | A / D | Generic CRUD (`features/vehicle/`)             | done   |
-| 4 | Offer / Find a ride + OSRM route match             | A     | NEW — ride engine (`ride`, `booking`)          | done   |
-| 5 | Trip lifecycle + live tracking (Pusher)            | B     | NEW — `trip`, `tripEvent` + Pusher             | done   |
-| 6 | Per-trip chat + `tel:` call                        | B     | NEW — `message` over Pusher                    | done   |
-| 7 | Payments + append-only wallet ledger (Stripe)      | C     | NEW — `payment`, `walletEntry` + Stripe        | done   |
-| 8 | Ride history + reports/analytics                   | C     | Computed read-model + PDF/charts pipeline      | done   |
-| 9 | Company-admin + super-admin consoles               | D     | NEW — org/user/invitation management           | done   |
+| #   | Requirement                                        | Slice | Built on                                        | Status |
+| --- | -------------------------------------------------- | ----- | ----------------------------------------------- | ------ |
+| 1   | Three roles + RBAC + multi-tenancy                 | D     | Auth.js + `lib/permissions.ts` (`scopedWhere`)  | done   |
+| 2   | Org onboarding — 3 paths (bootstrap/invite/domain) | D     | `invitation` table + domain match               | done   |
+| 3   | Vehicle management + admin approval                | A / D | Generic CRUD (`features/vehicle/`)              | done   |
+| 4   | Offer / Find a ride + OSRM route match             | A     | NEW — ride engine (`ride`, `booking`)           | done   |
+| 5   | Trip lifecycle + live tracking (Pusher)            | B     | NEW — `trip`, `tripEvent` + Pusher              | done   |
+| 6   | Per-trip chat + `tel:` call                        | B     | NEW — `message` over Pusher                     | done   |
+| 7   | Payments + append-only wallet ledger (Stripe)      | C     | NEW — `payment`, `walletEntry` + Stripe         | done   |
+| 8   | Ride history + reports/analytics                   | C     | Computed read-model + PDF/charts pipeline       | done   |
+| 9   | Company-admin + super-admin consoles               | D     | NEW — org/user/invitation management            | done   |
 
 ## Out of scope (deliberately)
 
