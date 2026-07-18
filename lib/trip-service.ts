@@ -194,6 +194,30 @@ export async function getTripViewById(
 }
 
 /**
+ * Lightweight participant check for a trip (used by the chat/message endpoints). Returns the trip
+ * row + whether the caller is the driver, or null when the trip is cross-org OR the caller isn't a
+ * party — so the route returns 404, never 403.
+ */
+export async function getParticipantContext(
+  tenant: Tenant,
+  userId: string,
+  tripId: string,
+): Promise<{ trip: Trip; isDriver: boolean } | null> {
+  const [t] = await db.select().from(trip).where(scopedWhere(tenant, trip, eq(trip.id, tripId)));
+  if (!t) return null;
+  const [r] = await db.select().from(ride).where(scopedWhere(tenant, ride, eq(ride.id, t.rideId)));
+  if (!r) return null;
+  if (r.driverId === userId) return { trip: t, isDriver: true };
+  const mine = await db
+    .select({ id: booking.id })
+    .from(booking)
+    .where(
+      scopedWhere(tenant, booking, and(eq(booking.rideId, t.rideId), eq(booking.passengerId, userId))),
+    );
+  return mine.length ? { trip: t, isDriver: false } : null;
+}
+
+/**
  * Explicit booking→trip create for a ride (POST /api/trip). Idempotent. Requires the caller to be a
  * participant and the ride to have a confirmed booking. Returns the (new or existing) trip row.
  */
