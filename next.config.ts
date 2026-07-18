@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  // StrictMode is OFF because react-leaflet v4.2.1 is not StrictMode-safe under React 18. Its
+  // MapContainer creates the Leaflet map inside a ref callback that has NO detach cleanup, so
+  // StrictMode's dev-only mount→unmount→remount double-invoke re-runs the ref on a DOM node that
+  // Leaflet already stamped with `_leaflet_id`, throwing "Map container is already initialized."
+  // The double-invoke is dev-only (it never runs in a production build), so this only affects the
+  // dev experience; there is no clean per-component workaround in v4 (fixed upstream in v5/React 19).
+  reactStrictMode: false,
   // @react-pdf/renderer is external (pure JS, Vercel-safe). It ships its OWN React reconciler, and
   // the trap is a dual-React-instance mismatch ("React error #31") — react-pdf (external) resolves
   // React from node_modules while Next bundles a second copy for the route. We render the PDF in an
