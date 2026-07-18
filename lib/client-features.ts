@@ -8,4 +8,6 @@
  */
 export const features = {
   uploads: process.env.NEXT_PUBLIC_UPLOADS_ENABLED === "true",
+  /** realtime (Pusher) available on the client — else tracking/chat use polling only. */
+  realtime: Boolean(process.env.NEXT_PUBLIC_PUSHER_KEY),
 } as const;

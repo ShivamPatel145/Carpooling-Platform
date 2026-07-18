@@ -1,0 +1,15 @@
+# Local dev overrides (untracked — do not commit).
+#
+# Relax the global pnpm supply-chain policy so local installs and `pnpm <script>` (dev, db:migrate,
+# db:seed) run against local Postgres. The global policy (minimumReleaseAge ~= 1 day) otherwise
+# rejects a borderline-fresh transitive lockfile entry (electron-to-chromium), and verifyDepsBeforeRun
+# re-runs that check before every script.
+minimumReleaseAge: 0
+verifyDepsBeforeRun: false
+
+# Allow these native/binary packages to run their install build scripts.
+onlyBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
+  - sharp
+  - unrs-resolver

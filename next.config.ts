@@ -7,7 +7,24 @@ const nextConfig: NextConfig = {
   // React from node_modules while Next bundles a second copy for the route. We render the PDF in an
   // isolated Node subprocess (lib/pdf/render.ts → scripts/render-pdf) so exactly one React instance
   // is in play, sidestepping the bundler entirely. Kept external here for correctness + Vercel safety.
+  // pg (node-postgres) is the LOCAL-dev database driver (swapped in for Neon's serverless driver).
+  // Keep it external so the server bundles it as a runtime require rather than trying to bundle its
+  // dynamic node internals.
   serverExternalPackages: ["@react-pdf/renderer", "pg"],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // The employee shell (a client component) imports nav.config.ts, which imports a VALUE
+      // (roleHierarchy) from lib/permissions.ts — a shared file that top-level-imports @/auth →
+      // @/db → pg (Node-only, needs fs/net/tls/util). Neon's serverless driver was browser-safe so
+      // this graph bundled cleanly; node-postgres is not. permissions.ts only calls auth() inside
+      // server-only guards, so we alias @/auth to an empty module in the CLIENT bundle: pg/db/env
+      // never reach the browser, while permissions' pure exports (roleHierarchy, hasPermission…)
+      // keep working. Server bundles (isServer) get the real driver. `db` is required lazily +
+      // server-only (db/index.ts), so this only needs to stop webpack from BUNDLING pg for the browser.
+      config.resolve.alias = { ...config.resolve.alias, pg: false };
+    }
+    return config;
+  },
   images: {
     remotePatterns: [
       // UploadThing-served assets
