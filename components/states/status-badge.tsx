@@ -25,6 +25,13 @@ const STATUS_VARIANTS: Record<string, BadgeProps["variant"]> = {
   pending: "warning",
   approved: "success",
   rejected: "destructive",
+  // trips — Slice B lifecycle (booked → started → in_progress → completed → payment_pending → payment_completed)
+  booked: "secondary",
+  started: "accent",
+  // in_progress already mapped above
+  completed: "success",
+  payment_pending: "warning",
+  payment_completed: "success",
   // BUILD-DAY: domain statuses map here.
 };
 

@@ -17,6 +17,12 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   UPLOADTHING_TOKEN: z.string().optional(),
 
+  // ── Optional: Pusher realtime (live tracking + chat; degrades to polling if absent) ─────────
+  PUSHER_APP_ID: z.string().optional(),
+  PUSHER_KEY: z.string().optional(),
+  PUSHER_SECRET: z.string().optional(),
+  PUSHER_CLUSTER: z.string().optional(),
+
   // ── Public ───────────────────────────────────────────────────────────────────────────────
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default("http://localhost:3000"),
 
@@ -45,4 +51,7 @@ export const features = {
   googleAuth: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
   email: Boolean(env.RESEND_API_KEY),
   uploads: Boolean(env.UPLOADTHING_TOKEN),
+  realtime: Boolean(
+    env.PUSHER_APP_ID && env.PUSHER_KEY && env.PUSHER_SECRET && env.PUSHER_CLUSTER,
+  ),
 } as const;
