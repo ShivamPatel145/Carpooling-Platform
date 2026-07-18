@@ -50,7 +50,7 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 │   ├── ride/                     #   Slice A — offer/find/book engine (+ RouteMap, location field)
 │   ├── trip/ message/ saved-place/  # Slice B — trips, tracking, chat, saved places
 │   ├── payment/ wallet/ report/ history/  # Slice C — payments, wallet, reports, ride history
-│   ├── organization/ admin-users/ admin-vehicles/  # Slice D — tenancy & admin consoles
+│   ├── organization/ user/         #   Slice D — tenancy & admin (admin vehicle table lives in vehicle/)
 │   └── activity-log/             #   read-only audit-trail slice (viewer over the generic table)
 │
 ├── db/                           # Database layer (Drizzle + Neon)
