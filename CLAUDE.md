@@ -74,7 +74,7 @@ components/
   data-table/           the generic <DataTable> (search + filter + pagination)
   shell/                dashboard chrome (sidebar, top nav, user menu)
 features/<entity>/      one folder per slice. schema.ts · hooks.ts · columns.tsx · form.tsx · components/
-  _demo/                THE working CRUD reference — copy it for a real entity
+  vehicle/              the reference org-scoped CRUD slice — copy it for a new entity
 db/schema/<table>.ts    ONE file per table, re-exported from db/schema/index.ts (barrel)
 lib/                    permissions, auth, api wrapper, errors, logger, email, pdf, fetcher, utils
 emails/                 React Email templates (notification-email.tsx = the one to duplicate)
@@ -110,7 +110,7 @@ docs/                   architecture, database, api, decisions (ADR), design-sta
 
 ## CRUD & forms
 
-- **Copy `features/_demo/`.** Never hand-roll a list screen — use `<DataTable>` + a column def.
+- **Copy `features/vehicle/`.** Never hand-roll a list screen — use `<DataTable>` + a column def.
 - **ONE Zod schema per entity** in `features/<entity>/schema.ts`, re-exported from the db table,
   imported by BOTH the API route and the form. Never two copies.
 - Mutations go through TanStack Query hooks in `hooks.ts`, invalidating the entity's list key on
@@ -164,8 +164,8 @@ skill. Reviewer prep is written *as you build* in `docs/reviewer-prep.md` (gitig
 
 **Project-specific conventions (carpooling):**
 
-- Copy `features/_demo/` per entity as before, but domain tables carry `orgId` — scope every query
-  with `scopedWhere(tenant, table, extraClause?)` from `@/lib/permissions`. `requirePermission`
+- Copy `features/vehicle/` per entity — domain tables carry `orgId`, so scope every query with
+  `scopedWhere(tenant, table, extraClause?)` from `@/lib/permissions`. `requirePermission`
   returns `{ session, tenant }`; use `tenant.orgId` on inserts and `logActivity`.
 - Cross-org fetch by id → scoped fetch returns nothing → throw `NotFoundError` (404, never 403).
 - Money/lat-lng are `numeric` (Drizzle returns strings — coerce in Zod). Geo points are `jsonb`

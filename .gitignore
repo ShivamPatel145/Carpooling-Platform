@@ -4,6 +4,10 @@
 /node_modules
 /.pnp
 .pnp.*
+
+# this is a pnpm project — never commit an npm/yarn lockfile
+package-lock.json
+yarn.lock
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
