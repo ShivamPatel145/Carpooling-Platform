@@ -13,10 +13,9 @@ export const GET = withErrorHandler(async () => {
 
   // Fetch org config
   const [org] = await db.select().from(organization).where(eq(organization.id, tenant.orgId!)).limit(1);
-  if (!org) throw new Error("Organization not found");
-  const fuelCostPerKm = Number(org.fuelCostPerKm);
-  const travelCostPerKm = Number(org.travelCostPerKm);
-  const maintenanceMonthly = Number(org.maintenanceMonthly);
+  const fuelCostPerKm = Number(org?.fuelCostPerKm ?? 0);
+  const travelCostPerKm = Number(org?.travelCostPerKm ?? 0);
+  const maintenanceMonthly = Number(org?.maintenanceMonthly ?? 0);
 
   // Filter trips based on role
   let tripCond;

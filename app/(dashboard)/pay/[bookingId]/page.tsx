@@ -1,33 +1,45 @@
 import type { Metadata } from "next";
+import { and, eq } from "drizzle-orm";
+import { notFound } from "next/navigation";
 import { requireRolePage } from "@/lib/session";
-import { PageHeader } from "@/components/page-header";
-import { PaymentForm } from "@/features/payment/components/payment-form";
 import { db } from "@/db";
 import { booking } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { notFound } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { coCard } from "@/components/co/ui";
+import { PaymentForm } from "@/features/payment/components/payment-form";
 
-export const metadata: Metadata = { title: "Pay for Trip" };
+export const metadata: Metadata = { title: "Complete Payment" };
 
 export default async function PayPage({ params }: { params: Promise<{ bookingId: string }> }) {
-  await requireRolePage("employee");
-
+  const session = await requireRolePage("employee");
   const { bookingId } = await params;
-  const [b] = await db.select().from(booking).where(eq(booking.id, bookingId)).limit(1);
+
+  // Owner- and org-scoped: an employee can only settle their OWN booking (cross-org/other → 404).
+  const [b] = await db
+    .select()
+    .from(booking)
+    .where(
+      and(
+        eq(booking.id, bookingId),
+        eq(booking.passengerId, session.user.id),
+        eq(booking.orgId, session.user.orgId!),
+      ),
+    )
+    .limit(1);
   if (!b) notFound();
 
   return (
-    <div className="max-w-md mx-auto space-y-6 mt-10">
-      <PageHeader
-        title="Complete Payment"
-        description="Choose a payment method to settle your ride."
-      />
-      <Card>
-        <CardContent className="pt-6">
-          <PaymentForm bookingId={b.id} fareAmount={Number(b.fareAmount)} />
-        </CardContent>
-      </Card>
+    <div className="mx-auto mt-8 max-w-md">
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Complete payment
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Settle your seat fare — wallet, card, UPI, or cash.
+        </p>
+      </div>
+      <div className={`${coCard} p-6`}>
+        <PaymentForm bookingId={b.id} fareAmount={Number(b.fareAmount)} />
+      </div>
     </div>
   );
 }

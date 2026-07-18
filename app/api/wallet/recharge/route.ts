@@ -4,7 +4,6 @@ import { withErrorHandler, ok } from "@/lib/api";
 import { rechargeFormSchema } from "@/features/wallet/schema";
 import { logActivity } from "@/lib/activity";
 
-// apiVersion omitted: the SDK's pinned default is used (its type literal is stricter than runtime).
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**

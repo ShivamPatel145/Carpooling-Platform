@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { RouteMap } from "@/components/map";
+import { coAmberBtn } from "@/components/co/ui";
 import { bookingFormSchema, type BookingFormValues, type RideWithMeta } from "@/features/ride/schema";
 import { useBookRide } from "@/features/ride/hooks";
 
@@ -48,7 +49,9 @@ export function BookDialog({ ride }: { ride: RideWithMeta }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Book</Button>
+        <button type="button" className={`${coAmberBtn} px-[22px] py-3 text-[14px]`}>
+          Book now
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -86,10 +89,14 @@ export function BookDialog({ ride }: { ride: RideWithMeta }) {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={book.isPending || seats < 1 || seats > maxSeats}>
+              <button
+                type="submit"
+                disabled={book.isPending || seats < 1 || seats > maxSeats}
+                className={`${coAmberBtn} px-5 py-2.5 text-[14px]`}
+              >
                 {book.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Confirm booking
-              </Button>
+              </button>
             </div>
           </form>
         </Form>

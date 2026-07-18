@@ -6,8 +6,6 @@ import { withErrorHandler, ok } from "@/lib/api";
 import { paymentFormSchema } from "@/features/payment/schema";
 import { eq, desc } from "drizzle-orm";
 
-// apiVersion is intentionally omitted so the installed SDK uses its pinned default; the SDK's
-// type literal is stricter than the string Stripe accepts at runtime.
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
@@ -43,7 +41,7 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     // Insert payment row
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: "wallet",
@@ -54,7 +52,7 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     // Deduct from wallet
     await db.insert(walletEntry).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       userId: session.user.id,
       delta: (-amount).toString(),
       reason: "ride_payment",
@@ -72,7 +70,7 @@ export const POST = withErrorHandler(async (req: Request) => {
   if (values.method === "card" || values.method === "upi") {
     // Insert pending payment
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: values.method,
@@ -103,7 +101,7 @@ export const POST = withErrorHandler(async (req: Request) => {
   // If Cash
   if (values.method === "cash") {
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: "cash",

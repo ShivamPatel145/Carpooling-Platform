@@ -25,9 +25,8 @@ export const homepageConfig: HomepageSection[] = [
 
 /** Placeholder marketing copy — REPLACED on build day with real, domain-specific words. */
 export const homepageCopy = {
-  // TODO(build-day): real product name + a real one-sentence value proposition (no SaaS slogans).
-  productName: "Operations Platform",
-  tagline: "A professional operations platform.",
+  productName: "Coride",
+  tagline: "Ride Together, Save Together.",
   subhead:
-    "Role-based dashboards, auditable workflows, and reporting — built for teams that run on process.",
+    "Coride matches you with verified colleagues on your exact commute — so the daily drive costs less, pollutes less, and finally feels like time worth having.",
 } as const;

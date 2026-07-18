@@ -1,10 +1,10 @@
 "use client";
 
-import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { WalletEntry } from "./schema";
+import { type ColumnDef as ReactTableColumnDef } from "@tanstack/react-table";
 
-export const walletColumns: ColumnDef<WalletEntry>[] = [
+export const walletColumns: ReactTableColumnDef<WalletEntry>[] = [
   {
     accessorKey: "createdAt",
     header: "Date",

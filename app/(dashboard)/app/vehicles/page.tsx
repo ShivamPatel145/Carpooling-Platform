@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { requirePermissionPage } from "@/lib/session";
-import { PageHeader } from "@/components/page-header";
 import { VehicleList } from "@/features/vehicle/components/vehicle-list";
 import { CreateVehicleDialog } from "@/features/vehicle/components/create-dialog";
 
@@ -15,11 +14,12 @@ export default async function VehiclesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="My Vehicles"
-        description="Register the cars you drive. An admin approves each one before you can offer rides with it."
-        action={<CreateVehicleDialog />}
-      />
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-xl text-[14px] text-[color:var(--ink-2)]">
+          Register the cars you drive. An admin approves each one before you can offer rides with it.
+        </p>
+        <CreateVehicleDialog />
+      </div>
       <VehicleList />
     </div>
   );

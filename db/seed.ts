@@ -322,7 +322,7 @@ async function main() {
   await db.insert(notification).values([
     { userId: rider.id, type: "info", title: "Welcome to Acme Mobility", body: "Your carpool account is ready.", href: "/dashboard" },
     { userId: rider.id, type: "success", title: "Booking confirmed", body: "Your seat on the ISKCON → Infocity ride is booked.", href: "/app/trips", isRead: false },
-    { userId: rider.id, type: "warning", title: "Rate your last trip", body: "How was your ride yesterday?", href: "/app/history", isRead: false },
+    { userId: rider.id, type: "warning", title: "Rate your last trip", body: "How was your ride yesterday?", href: "/history", isRead: false },
   ]);
   console.log("  • 3 notifications for rider@demo.dev");
 
