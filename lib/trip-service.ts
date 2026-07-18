@@ -5,6 +5,7 @@ import type { Trip } from "@/db/schema/trip";
 import { AppError, NotFoundError } from "@/lib/errors";
 import { scopedWhere, type Tenant } from "@/lib/permissions";
 import { logger } from "@/lib/logger";
+import { notifyUser } from "@/lib/notify";
 import type { TripParticipant, TripRole, TripView } from "@/features/trip/schema";
 
 /**
@@ -34,6 +35,29 @@ export async function writeTripEvent(
   } catch (err) {
     logger.error("writeTripEvent failed", { err, tripId, type });
   }
+}
+
+/** Notify confirmed passengers once, when their trip is first materialized (booking→trip handoff).
+ *  In-app + email (email self-skips without Resend). Best-effort — notifyUser never throws. */
+async function notifyTripReady(orgId: string, tripId: string, passengerIds: string[]): Promise<void> {
+  const ids = [...new Set(passengerIds)];
+  if (!ids.length) return;
+  const users = await db.select().from(user).where(inArray(user.id, ids));
+  await Promise.all(
+    users.map((u) =>
+      notifyUser({
+        userId: u.id,
+        toEmail: u.email,
+        recipientName: u.name,
+        type: "success",
+        title: "Your carpool trip is ready",
+        body: "Your booking is confirmed and the trip is set. You can track it live once the driver starts.",
+        href: `/app/trips/${tripId}`,
+        resource: "trip",
+        resourceId: tripId,
+      }),
+    ),
+  );
 }
 
 /**
@@ -82,7 +106,16 @@ export async function ensureTripsForUser(tenant: Tenant, userId: string): Promis
         .insert(trip)
         .values({ orgId: tenant.orgId, rideId, status: "booked" })
         .returning();
-      if (row) await writeTripEvent(tenant.orgId, row.id, "booked", { via: "booking-handoff" });
+      if (row) {
+        await writeTripEvent(tenant.orgId, row.id, "booked", { via: "booking-handoff" });
+        const bks = await db
+          .select({ passengerId: booking.passengerId })
+          .from(booking)
+          .where(
+            scopedWhere(tenant, booking, and(eq(booking.rideId, rideId), eq(booking.status, "confirmed"))),
+          );
+        await notifyTripReady(tenant.orgId, row.id, bks.map((b) => b.passengerId));
+      }
     } catch (err) {
       // Another request materialized it first — one trip per ride is the invariant we want.
       logger.warn("ensureTripsForUser: trip already exists for ride", { rideId });
@@ -246,5 +279,6 @@ export async function createTripForRide(
 
   const [row] = await db.insert(trip).values({ orgId: tenant.orgId!, rideId, status: "booked" }).returning();
   await writeTripEvent(tenant.orgId!, row!.id, "booked", { via: "booking-handoff" });
+  await notifyTripReady(tenant.orgId!, row!.id, bookings.map((b) => b.passengerId));
   return row!;
 }
