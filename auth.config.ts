@@ -1,6 +1,4 @@
 import type { NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
-import { env, features } from "@/lib/env";
 import type { UserRole, UserStatus, PlatformAccess } from "@/db/schema/user";
 
 /**
@@ -10,8 +8,7 @@ import type { UserRole, UserStatus, PlatformAccess } from "@/db/schema/user";
  *     live in auth.ts on the Node runtime. Importing the DB/adapter into the Edge middleware
  *     kills cold-start performance and the reviewer will ask (rbac-guard rule #5).
  *
- * The Google provider is added only when its env vars are present, so the app boots with just
- * DATABASE_URL + AUTH_SECRET during Phase 0.
+ * Auth is email + password only (Credentials provider, added in auth.ts). No third-party OAuth.
  */
 export const authConfig = {
   trustHost: true,
@@ -21,15 +18,6 @@ export const authConfig = {
     error: "/login",
   },
   providers: [
-    ...(features.googleAuth
-      ? [
-          Google({
-            clientId: env.AUTH_GOOGLE_ID,
-            clientSecret: env.AUTH_GOOGLE_SECRET,
-            allowDangerousEmailAccountLinking: true, // link Google to an existing email account
-          }),
-        ]
-      : []),
     // Credentials provider is added in auth.ts (needs DB + scrypt — Node only).
   ],
   callbacks: {

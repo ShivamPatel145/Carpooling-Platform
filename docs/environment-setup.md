@@ -60,8 +60,6 @@ real values via the team password manager — never commit `.env.local`.
 
 | Variable                                                            | Enables                                     | If absent…                                                        |
 | ------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
-| `AUTH_GOOGLE_ID`                                                    | Google OAuth login                          | Credentials login still works.                                    |
-| `AUTH_GOOGLE_SECRET`                                                | Google OAuth login                          | —                                                                 |
 | `RESEND_API_KEY`                                                    | Sending email via Resend                    | Emails are logged, not sent.                                      |
 | `UPLOADTHING_TOKEN`                                                 | File uploads (server)                       | Upload UI disables itself.                                        |
 | `NEXT_PUBLIC_UPLOADS_ENABLED`                                       | Client knows uploads are on                 | Set `"true"` when `UPLOADTHING_TOKEN` is configured.              |
