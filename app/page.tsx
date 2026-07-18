@@ -60,7 +60,8 @@ const STATS = [
 export default async function HomePage() {
   const session = await auth();
   const isAuthed = Boolean(session?.user);
-  const startHref = isAuthed ? "/dashboard" : "/register";
+  // Self-service sign-up is disabled (accounts are company-provisioned), so the public CTA is sign-in.
+  const startHref = isAuthed ? "/dashboard" : "/login";
 
   return (
     <div className="min-h-screen bg-[color:var(--page)] text-[color:var(--ink)]">
@@ -94,7 +95,7 @@ export default async function HomePage() {
               </p>
               <div className="mb-7 flex flex-wrap gap-3">
                 <Link href={startHref} className={`${coAmberBtn} px-[26px] py-[15px] text-[16px]`}>
-                  {isAuthed ? "Open the app" : "Get started — it's free"}
+                  {isAuthed ? "Open the app" : "Sign in"}
                 </Link>
                 <a href="#co-how" className={`${coGhostBtn} px-6 py-[15px] text-[16px]`}>
                   See how it works
@@ -416,7 +417,7 @@ export default async function HomePage() {
                 </p>
                 <div className="flex flex-wrap justify-center gap-3.5">
                   <Link href={startHref} className={`${coAmberBtn} px-8 py-4 text-[16px]`}>
-                    {isAuthed ? "Open the app" : "Get started free"}
+                    {isAuthed ? "Open the app" : "Sign in"}
                   </Link>
                   <Link
                     href={isAuthed ? "/dashboard" : "/login"}

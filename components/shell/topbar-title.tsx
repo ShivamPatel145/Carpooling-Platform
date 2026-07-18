@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { usePathname } from "next/navigation";
 
 /**
@@ -37,14 +38,22 @@ export function TopbarTitle() {
       (a, b) => b.prefix.length - a.prefix.length,
     )[0] ?? { title: "Coride", sub: "" };
 
+  // On the Dashboard, show today's date (like the comp). Computed after mount so SSR and the first
+  // client render agree — the date only swaps in post-hydration, avoiding a mismatch.
+  const [today, setToday] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    setToday(new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }));
+  }, []);
+  const sub = match.title === "Dashboard" && today ? `Today · ${today}` : match.sub;
+
   return (
     <div className="min-w-0 flex-1">
       <div className="truncate font-display text-[18px] font-bold leading-tight tracking-[-0.01em] text-[color:var(--ink)]">
         {match.title}
       </div>
-      {match.sub && (
+      {sub && (
         <div className="truncate font-mono text-[12.5px] text-[color:var(--ink-3)]">
-          {match.sub}
+          {sub}
         </div>
       )}
     </div>
