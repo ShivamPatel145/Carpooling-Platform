@@ -44,6 +44,7 @@ export function LoginForm() {
   const { errors } = form.formState;
 
   async function onSubmit(values: Values) {
+    if (pending) return;
     setPending(true);
     const res = await signIn("credentials", {
       email: values.email,
@@ -77,7 +78,10 @@ export function LoginForm() {
         <ThemeToggle />
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      {/* method="post" so the browser's native fallback (Enter pressed before hydration, or JS
+          disabled) never serialises email/password into the URL as a GET query string; the real
+          submit is always the JS handler below, which preventDefaults and calls signIn(). */}
+      <form method="post" onSubmit={(e) => { e.preventDefault(); void form.handleSubmit(onSubmit)(e); }} noValidate>
         <label className="mb-1 block">
           <span className={coLabel}>Work email or mobile</span>
           <input
