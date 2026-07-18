@@ -46,3 +46,6 @@ docs/reviewer-prep.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local temp redirect (used when C: drive is full — off-drive scratch)
+/.tmp-e/

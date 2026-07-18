@@ -29,9 +29,20 @@ const STATUS_VARIANTS: Record<string, BadgeProps["variant"]> = {
   booked: "secondary",
   started: "accent",
   // in_progress already mapped above
+  // `completed` is shared by the trip lifecycle (Slice B) AND ride/booking lifecycles (Slice A).
+  // One global mapping wins: "success" to match the positive-terminal pattern (resolved/approved/
+  // payment_completed). Slice A originally proposed "outline"; unified here.
   completed: "success",
   payment_pending: "warning",
   payment_completed: "success",
+  // carpooling — vehicle approval (Slice A)
+  inactive: "secondary",
+  // carpooling — ride lifecycle (ride.status)
+  published: "success",
+  full: "secondary",
+  cancelled: "destructive",
+  // carpooling — booking lifecycle (booking.status): pending/cancelled/completed shared above
+  confirmed: "success",
   // BUILD-DAY: domain statuses map here.
 };
 
