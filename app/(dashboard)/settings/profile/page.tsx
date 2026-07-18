@@ -6,7 +6,7 @@ import { organization, user as userTable } from "@/db/schema";
 import { coCard, CoAvatar, coInitials } from "@/components/co/ui";
 import { PreferencesPanel } from "@/components/settings/preferences-panel";
 
-export const metadata: Metadata = { title: "Profile" };
+export const metadata: Metadata = { title: "Settings" };
 
 /**
  * Profile + Preferences (comp: identity card on the left, preference switches on the right).
@@ -38,15 +38,6 @@ export default async function ProfilePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
-          Profile
-        </h2>
-        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
-          Your identity on Coride, and how you like to ride.
-        </p>
-      </div>
-
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Identity */}
         <div className={`${coCard} p-6`}>

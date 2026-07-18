@@ -49,15 +49,6 @@ export default async function WalletPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
-          Wallet
-        </h2>
-        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
-          Top up once, then pay for every seat in a tap.
-        </p>
-      </div>
-
       <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
         {/* Balance + recharge */}
         <div className="flex flex-col gap-4">

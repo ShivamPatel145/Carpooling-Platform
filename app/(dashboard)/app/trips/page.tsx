@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { requirePermissionPage } from "@/lib/session";
-import { PageHeader } from "@/components/page-header";
 import { TripsList } from "@/features/trip/components/trips-list";
 
 export const metadata: Metadata = { title: "My Trips" };
@@ -14,10 +13,6 @@ export default async function TripsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="My Trips"
-        description="Rides you're driving or riding. Start, track, chat, and complete them here."
-      />
       <TripsList />
     </div>
   );
