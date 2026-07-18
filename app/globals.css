@@ -13,82 +13,135 @@
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Warm neutral base — Coride comp palette (page/surface/ink/line). */
+    --background: 40 37% 97%; /* page  #FAF8F4 warm cream */
+    --foreground: 222 16% 12%; /* ink   #1A1D24 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 0 0% 100%; /* surface #FFFFFF — white cards float on cream */
+    --card-foreground: 222 16% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 222 16% 12%;
 
-    /* primary = near-black neutral (the confident neutral base) */
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    /* primary = warm ink band (the confident neutral base) */
+    --primary: 222 16% 12%; /* band #1A1D24 */
+    --primary-foreground: 41 33% 93%; /* on-band #F4F1EA */
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 40 33% 93%; /* surface-2 #F3EFE7 */
+    --secondary-foreground: 222 16% 12%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 40%; /* AA on white: 4.76:1 */
+    --muted: 40 33% 93%; /* surface-2 #F3EFE7 */
+    --muted-foreground: 225 6% 38%; /* ink-2 #5A5D66 — 5.9:1 on white */
 
-    /* ▼▼▼ THE ONE DOMAIN TOKEN — Dusk Route signal amber (amber-500). Base palette lands via Claude Design. ▼▼▼ */
+    /* ▼▼▼ THE ONE DOMAIN TOKEN — signal amber (amber-500). ▼▼▼ */
     --accent: 38 90% 55%; /* amber-500 #F4A726 — signal accent. On-accent text is ink (below). */
     --accent-foreground: 38 84% 7%; /* ink #231703 — 8.70:1 on the amber fill */
     /* ▲▲▲ ------------------------------------------------------------------ ▲▲▲ */
 
-    --destructive: 0 72% 51%; /* red-600 */
+    --destructive: 4 52% 47%; /* bad #B4483C — warm red */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 29%; /* green-700 — AA on white */
+    --success: 151 45% 34%; /* ok #2F7D57 — AA on white */
     --success-foreground: 0 0% 100%;
 
-    --warning: 32 81% 40%; /* amber-700 — AA on white */
+    --warning: 37 87% 42%; /* amber-strong #C9820E — AA on white */
     --warning-foreground: 0 0% 100%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --border: 39 26% 87%; /* line #E7E1D6 */
+    --input: 40 22% 81%; /* line-2 #DAD3C5 — slightly stronger for field edges */
     --ring: 38 90% 55%; /* focus ring tracks the accent (amber-500) */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Coride cards use 14-16px radii */
+
+    /* ── Coride raw design tokens (verbatim from the comp) — used for accent specials ── */
+    --page: #faf8f4;
+    --surface: #ffffff;
+    --surface-2: #f3efe7;
+    --ink: #1a1d24;
+    --ink-2: #5a5d66;
+    --ink-3: #8e9098;
+    --line: #e7e1d6;
+    --line-2: #dad3c5;
+    --band: #1a1d24;
+    --band-card: #242932;
+    --on-band: #f4f1ea;
+    --on-band-2: rgba(244, 241, 234, 0.62);
+    --band-line: rgba(244, 241, 234, 0.14);
+    --amber: #f4a726;
+    --amber-strong: #c9820e;
+    --amber-tint: rgba(244, 167, 38, 0.15);
+    --amber-line: rgba(201, 130, 14, 0.34);
+    --ok: #2f7d57;
+    --ok-tint: rgba(47, 125, 87, 0.14);
+    --btn-amber-bg: #c9820e;
+    --btn-amber-fg: #ffffff;
+    --avatar-bg: #1a1d24;
+    --avatar-fg: #f4f1ea;
+    --dot: #dad3c5;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 222 16% 12%; /* page #1A1D24 */
+    --foreground: 40 37% 97%; /* ink  #FAF8F4 */
 
-    --card: 0 0% 5.5%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 15% 16%; /* surface #23272F */
+    --card-foreground: 40 37% 97%;
 
-    --popover: 0 0% 5.5%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 220 15% 16%;
+    --popover-foreground: 40 37% 97%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 40 37% 97%;
+    --primary-foreground: 222 16% 12%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 15% 19%; /* surface-2 #2A2F39 */
+    --secondary-foreground: 40 37% 97%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%; /* AA on near-black: 7.7:1 */
+    --muted: 220 15% 19%;
+    --muted-foreground: 224 7% 70%; /* ink-2 #ADB0B8 */
 
-    /* ▼▼▼ THE ONE DOMAIN TOKEN (dark) — lightened placeholder for contrast on dark. ▼▼▼ */
-    --accent: 38 90% 55%; /* amber-500 #F4A726 — same signal amber in dark; 8.35:1 on charcoal ink */
-    --accent-foreground: 38 84% 7%; /* ink #231703 — reads on the amber fill */
+    /* ▼▼▼ THE ONE DOMAIN TOKEN (dark). ▼▼▼ */
+    --accent: 38 90% 55%; /* amber-500 #F4A726 */
+    --accent-foreground: 38 84% 7%;
     /* ▲▲▲ ------------------------------------------------------------------------- ▲▲▲ */
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 7 66% 65%; /* bad #E07567 */
+    --destructive-foreground: 222 16% 12%;
 
-    --success: 142 60% 45%;
-    --success-foreground: 0 0% 9%;
+    --success: 149 41% 52%; /* ok #54B784 */
+    --success-foreground: 222 16% 12%;
 
-    --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 9%;
+    --warning: 38 90% 55%;
+    --warning-foreground: 222 16% 12%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 220 14% 21%; /* line #2F343E */
+    --input: 220 13% 27%; /* line-2 #3C424E */
     --ring: 38 90% 55%;
+
+    /* ── Coride raw design tokens (dark) ── */
+    --page: #1a1d24;
+    --surface: #23272f;
+    --surface-2: #2a2f39;
+    --ink: #faf8f4;
+    --ink-2: #adb0b8;
+    --ink-3: #7c818b;
+    --line: #2f343e;
+    --line-2: #3c424e;
+    --band: #22272f;
+    --band-card: #2c313b;
+    --on-band: #faf8f4;
+    --on-band-2: rgba(250, 248, 244, 0.62);
+    --band-line: rgba(250, 248, 244, 0.1);
+    --amber: #f4a726;
+    --amber-strong: #f4a726;
+    --amber-tint: rgba(244, 167, 38, 0.16);
+    --amber-line: rgba(244, 167, 38, 0.34);
+    --ok: #54b784;
+    --ok-tint: rgba(84, 183, 132, 0.16);
+    --btn-amber-bg: #f4a726;
+    --btn-amber-fg: #1a1d24;
+    --avatar-bg: #f4f1ea;
+    --avatar-fg: #1a1d24;
+    --dot: #3c424e;
   }
 }
 
@@ -120,6 +173,24 @@
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
+}
+
+/* Coride live-trip dot ripple — the pulsing amber marker on active trips + tracking. */
+@keyframes coPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.co-pulse {
+  animation: coPulse 1.9s ease-out infinite;
 }
 
 /* Respect reduced-motion globally — §6. Framer Motion also checks this per-component. */

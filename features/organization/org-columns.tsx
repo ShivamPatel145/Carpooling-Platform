@@ -1,15 +1,7 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { Mail, Trash2 } from "lucide-react";
+import { coGhostBtn } from "@/components/co/ui";
 import type { Organization } from "@/db/schema/organization";
 
 export type OrgRow = Pick<
@@ -17,102 +9,37 @@ export type OrgRow = Pick<
   "id" | "name" | "currency" | "autoApproveDomain" | "allowedEmailDomains" | "createdAt"
 > & { userCount?: number };
 
-interface OrgActionsProps {
+/**
+ * Coride row actions for an organization — invite a company admin, or delete the tenant.
+ * Presentation only; the handlers (mutations) are owned by the table wrapper.
+ */
+export function OrgRowActions({
+  org,
+  onInvite,
+  onDelete,
+}: {
   org: OrgRow;
   onInvite: (org: OrgRow) => void;
   onDelete: (id: string) => void;
-}
-
-function OrgActions({ org, onInvite, onDelete }: OrgActionsProps) {
+}) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onInvite(org)}>
-          <Mail className="mr-2 h-4 w-4" />
-          Invite Admin
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => onDelete(org.id)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Org
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-2">
+      <button
+        type="button"
+        onClick={() => onInvite(org)}
+        className={`${coGhostBtn} h-8 gap-1.5 px-3 text-[12.5px]`}
+      >
+        <Mail className="h-3.5 w-3.5" strokeWidth={1.8} />
+        Invite admin
+      </button>
+      <button
+        type="button"
+        onClick={() => onDelete(org.id)}
+        aria-label={`Delete ${org.name}`}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[color:var(--line-2)] bg-[color:var(--surface)] text-[color:var(--ink-3)] transition hover:border-[color:var(--ink)] hover:text-[color:var(--ink)] active:scale-[.98]"
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+      </button>
+    </div>
   );
-}
-
-export function getOrgColumns(
-  onInvite: (org: OrgRow) => void,
-  onDelete: (id: string) => void,
-): ColumnDef<OrgRow>[] {
-  return [
-    {
-      accessorKey: "name",
-      header: "Organization",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("name")}</div>
-      ),
-    },
-    {
-      accessorKey: "allowedEmailDomains",
-      header: "Email Domains",
-      cell: ({ row }) => {
-        const domains = row.getValue("allowedEmailDomains") as string[];
-        return (
-          <div className="flex flex-wrap gap-1">
-            {domains.length === 0 ? (
-              <span className="text-muted-foreground text-xs">—</span>
-            ) : (
-              domains.slice(0, 2).map((d) => (
-                <Badge key={d} variant="secondary" className="text-xs font-mono">
-                  @{d}
-                </Badge>
-              ))
-            )}
-            {domains.length > 2 && (
-              <Badge variant="outline" className="text-xs">+{domains.length - 2}</Badge>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "autoApproveDomain",
-      header: "Onboarding",
-      cell: ({ row }) =>
-        row.getValue("autoApproveDomain") ? (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">Auto-approve</Badge>
-        ) : (
-          <Badge variant="outline" className="text-xs">Approval queue</Badge>
-        ),
-    },
-    {
-      accessorKey: "currency",
-      header: "Currency",
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue("currency")}</span>
-      ),
-    },
-    {
-      accessorKey: "userCount",
-      header: "Members",
-      cell: ({ row }) => (
-        <span className="tabular-nums">{row.getValue("userCount") ?? "—"}</span>
-      ),
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <OrgActions org={row.original} onInvite={onInvite} onDelete={onDelete} />
-      ),
-    },
-  ];
 }

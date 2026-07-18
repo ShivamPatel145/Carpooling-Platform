@@ -6,9 +6,7 @@ import { withErrorHandler, ok } from "@/lib/api";
 import { paymentFormSchema } from "@/features/payment/schema";
 import { eq, desc } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
  * POST /api/payment
@@ -43,17 +41,18 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     // Insert payment row
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: "wallet",
       amount: amount.toString(),
       status: "succeeded",
     }).returning();
+    if (!p) throw new Error("Failed to record payment");
 
     // Deduct from wallet
     await db.insert(walletEntry).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       userId: session.user.id,
       delta: (-amount).toString(),
       reason: "ride_payment",
@@ -71,13 +70,14 @@ export const POST = withErrorHandler(async (req: Request) => {
   if (values.method === "card" || values.method === "upi") {
     // Insert pending payment
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: values.method,
       amount: amount.toString(),
       status: "pending",
     }).returning();
+    if (!p) throw new Error("Failed to record payment");
 
     // Init Stripe
     const paymentIntent = await stripe.paymentIntents.create({
@@ -101,13 +101,14 @@ export const POST = withErrorHandler(async (req: Request) => {
   // If Cash
   if (values.method === "cash") {
     const [p] = await db.insert(payment).values({
-      orgId: tenant.orgId,
+      orgId: tenant.orgId!,
       bookingId: b.id,
       payerId: session.user.id,
       method: "cash",
       amount: amount.toString(),
       status: "succeeded",
     }).returning();
+    if (!p) throw new Error("Failed to record payment");
 
     await db.update(trip).set({ status: "payment_completed" }).where(eq(trip.rideId, b.rideId));
     return ok({ payment: p });

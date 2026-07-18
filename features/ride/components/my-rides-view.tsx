@@ -1,34 +1,53 @@
 "use client";
 
-import { ArrowRight, Clock, IndianRupee, MapPin, X } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, ErrorState, StatusBadge, TableSkeleton } from "@/components/states";
-import { formatDateTime } from "@/lib/utils";
+import {
+  coCard,
+  coGhostBtn,
+  CoAvatar,
+  CoRouteLine,
+  CoSeatBadge,
+  coInitials,
+  splitDepartTime,
+} from "@/components/co/ui";
 import { RideCard } from "@/features/ride/components/ride-card";
 import { useMyRides, useMyBookings, useCancelRide, useCancelBooking } from "@/features/ride/hooks";
-import type { RideWithMeta } from "@/features/ride/schema";
+import type { RideWithMeta, BookingWithMeta } from "@/features/ride/schema";
 
 /**
  * "My Rides" — the mode-switcher's history. Two tabs: rides I OFFER (driver) and seats I BOOKED
- * (passenger). Each renders loading / empty / error and offers a cancel where valid. All data is
- * owner-scoped by the API.
+ * (passenger). Each renders loading / empty / error and offers a cancel where valid. Data is
+ * owner-scoped by the API. Cards share the Coride ride/trip visual language.
  */
 export function MyRidesView() {
   return (
     <Tabs defaultValue="offered">
-      <TabsList>
-        <TabsTrigger value="offered">Rides I offer</TabsTrigger>
-        <TabsTrigger value="booked">Seats I booked</TabsTrigger>
+      <TabsList className="mb-5 max-w-[340px]">
+        <TabsTrigger value="offered" className="flex-1">
+          Rides I offer
+        </TabsTrigger>
+        <TabsTrigger value="booked" className="flex-1">
+          Seats I booked
+        </TabsTrigger>
       </TabsList>
-      <TabsContent value="offered" className="mt-4">
+      <TabsContent value="offered">
         <OfferedTab />
       </TabsContent>
-      <TabsContent value="booked" className="mt-4">
+      <TabsContent value="booked">
         <BookedTab />
       </TabsContent>
     </Tabs>
+  );
+}
+
+function CancelButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={`${coGhostBtn} px-4 py-2.5 text-[14px]`}>
+      <X className="h-4 w-4" />
+      Cancel
+    </button>
   );
 }
 
@@ -49,7 +68,7 @@ function OfferedTab() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3.5">
       {data.map((r) => {
         const cancellable = r.status === "published" || r.status === "full";
         return (
@@ -58,15 +77,7 @@ function OfferedTab() {
             ride={r as RideWithMeta}
             action={
               cancellable ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={cancel.isPending}
-                  onClick={() => cancel.mutate(r.id)}
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </Button>
+                <CancelButton onClick={() => cancel.mutate(r.id)} disabled={cancel.isPending} />
               ) : undefined
             }
           />
@@ -93,52 +104,75 @@ function BookedTab() {
   }
 
   return (
-    <div className="space-y-3">
-      {data.map((b) => {
-        const cancellable = b.status === "pending" || b.status === "confirmed";
-        return (
-          <Card key={b.id}>
-            <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{b.origin.label}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{b.destination.label}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span className="font-mono">{formatDateTime(b.departAt)}</span>
-                  </span>
-                  <span className="font-mono tabular-nums">
-                    {b.seatsBooked} seat{b.seatsBooked === 1 ? "" : "s"}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <IndianRupee className="h-3.5 w-3.5" />
-                    <span className="font-mono tabular-nums">{Number(b.fareAmount).toFixed(0)}</span>
-                  </span>
-                  {b.driverName && <span>· {b.driverName}</span>}
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <StatusBadge status={b.status} />
-                {cancellable && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={cancel.isPending}
-                    onClick={() => cancel.mutate(b.id)}
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="flex flex-col gap-3.5">
+      {data.map((b) => (
+        <BookingCard
+          key={b.id}
+          booking={b}
+          onCancel={
+            b.status === "pending" || b.status === "confirmed"
+              ? () => cancel.mutate(b.id)
+              : undefined
+          }
+          cancelling={cancel.isPending}
+        />
+      ))}
     </div>
+  );
+}
+
+function BookingCard({
+  booking: b,
+  onCancel,
+  cancelling,
+}: {
+  booking: BookingWithMeta;
+  onCancel?: () => void;
+  cancelling?: boolean;
+}) {
+  const { time, meta } = splitDepartTime(b.departAt);
+  return (
+    <article className={`${coCard} overflow-hidden`}>
+      <div className="flex items-center gap-3 px-[18px] pb-[13px] pt-[15px]">
+        <CoAvatar initials={coInitials(b.driverName)} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15px] font-semibold text-[color:var(--ink)]">
+            {b.driverName ?? "Driver"}
+          </div>
+          <div className="truncate font-mono text-[12px] text-[color:var(--ink-3)]">As passenger</div>
+        </div>
+        <StatusBadge status={b.status} />
+      </div>
+
+      <div className="flex items-center gap-3.5 border-y border-[color:var(--line)] bg-[color:var(--surface-2)] px-[18px] py-3.5">
+        <div className="text-center">
+          <div className="font-mono text-[22px] font-semibold leading-none tracking-[-0.01em] text-[color:var(--ink)]">
+            {time}
+          </div>
+          <div className="mt-[3px] text-[11px] text-[color:var(--ink-3)]">{meta}</div>
+        </div>
+        <CoRouteLine
+          middle={
+            <span className="truncate">
+              {b.origin.label} → {b.destination.label}
+            </span>
+          }
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3.5 px-[18px] py-3.5">
+        <CoSeatBadge>
+          {b.seatsBooked} seat{b.seatsBooked === 1 ? "" : "s"}
+        </CoSeatBadge>
+        <div className="flex-1" />
+        <div className="text-right">
+          <div className="font-mono text-[18px] font-semibold text-[color:var(--amber-strong)]">
+            ₹{Number(b.fareAmount).toFixed(0)}
+          </div>
+          <div className="text-[11px] text-[color:var(--ink-3)]">total fare</div>
+        </div>
+        {onCancel && <CancelButton onClick={onCancel} disabled={cancelling} />}
+      </div>
+    </article>
   );
 }

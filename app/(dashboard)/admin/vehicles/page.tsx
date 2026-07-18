@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Car } from "lucide-react";
 import { requireRolePage } from "@/lib/session";
 import { scopedWhere } from "@/lib/permissions";
 import { db } from "@/db";
 import { vehicle, user } from "@/db/schema";
-import { PageHeader } from "@/components/page-header";
 import { VehicleAdminTable } from "@/features/admin-vehicles/vehicle-admin-table";
 
 export const metadata: Metadata = { title: "Vehicles" };
@@ -54,11 +52,14 @@ export default async function AdminVehiclesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Vehicles"
-        description="Approve, deactivate, and register vehicles on behalf of employees."
-        icon={Car}
-      />
+      <div className="mb-6">
+        <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
+          Vehicles
+        </h2>
+        <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
+          Approve cars before they can carry colleagues.
+        </p>
+      </div>
       <VehicleAdminTable rows={rows} />
     </div>
   );

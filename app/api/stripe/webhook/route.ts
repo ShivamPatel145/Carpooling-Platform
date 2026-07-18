@@ -1,13 +1,10 @@
-import { NextResponse } from "next";
+import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
 import { payment, walletEntry } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { logActivity } from "@/lib/activity"; // Note: might not have session in webhook, so can't easily log unless we fake req/tenant
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
  * Stripe webhook handler.
@@ -41,13 +38,14 @@ export async function POST(req: Request) {
     }
 
     if (metadata.action === "wallet_recharge") {
-      if (event.type === "payment_intent.succeeded") {
-        const amount = Number(metadata.amount);
-        
+      const { userId, orgId } = metadata;
+      if (event.type === "payment_intent.succeeded" && userId && orgId) {
+        const amount = Number(metadata.amount ?? 0);
+
         // Find latest balance
         const [latest] = await db.select({ balanceAfter: walletEntry.balanceAfter })
           .from(walletEntry)
-          .where(eq(walletEntry.userId, metadata.userId))
+          .where(eq(walletEntry.userId, userId))
           .orderBy(desc(walletEntry.createdAt))
           .limit(1);
 
@@ -55,8 +53,8 @@ export async function POST(req: Request) {
         const newBalance = currentBalance + amount;
 
         await db.insert(walletEntry).values({
-          orgId: metadata.orgId,
-          userId: metadata.userId,
+          orgId,
+          userId,
           delta: amount.toString(),
           reason: "recharge",
           refId: paymentIntent.id,

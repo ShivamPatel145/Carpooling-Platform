@@ -1,4 +1,4 @@
-import { desc, eq, and, or } from "drizzle-orm";
+import { desc, eq, and, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { trip, ride, booking, vehicle, user } from "@/db/schema";
 import { requirePermission, scopedWhere } from "@/lib/permissions";
@@ -25,7 +25,7 @@ export const GET = withErrorHandler(async () => {
       ride,
       vehicle,
       driver: user,
-      role: db.$cast<string>(db.$raw(`'driver'`)),
+      role: sql<string>`'driver'`,
     })
     .from(trip)
     .innerJoin(ride, eq(trip.rideId, ride.id))
@@ -46,7 +46,7 @@ export const GET = withErrorHandler(async () => {
       vehicle,
       driver: user, // need driver details
       booking,
-      role: db.$cast<string>(db.$raw(`'passenger'`)),
+      role: sql<string>`'passenger'`,
     })
     .from(trip)
     .innerJoin(ride, eq(trip.rideId, ride.id))

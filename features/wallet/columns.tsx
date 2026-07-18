@@ -1,10 +1,7 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { WalletEntry } from "./schema";
-
-// Wait, the ColumnDef import should be from "@tanstack/react-table"
 import { type ColumnDef as ReactTableColumnDef } from "@tanstack/react-table";
 
 export const walletColumns: ReactTableColumnDef<WalletEntry>[] = [

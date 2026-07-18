@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
-  Boxes,
   Bell,
   Settings,
   Users,
@@ -13,6 +12,9 @@ import {
   PlusCircle,
   Route,
   Car,
+  Wallet,
+  History,
+  UserCircle,
 } from "lucide-react";
 import type { Role } from "@/lib/permissions";
 
@@ -53,8 +55,7 @@ export const navConfig: NavItem[] = [
   { title: "Platform", href: "/platform", icon: Building2, minRole: "super_admin", roles: ["super_admin"], group: "Platform" },
 
   // ── Employee app (mode-switcher). roles:["employee"] keeps these out of admin sidebars. ──
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, minRole: "employee", roles: ["employee"], group: "Overview" },
-  { title: "Demo Entities", href: "/demo", icon: Boxes, minRole: "employee", roles: ["employee"], group: "Work" },
+  { title: "Dashboard", href: "/app", icon: LayoutDashboard, minRole: "employee", roles: ["employee"], group: "Overview" },
   { title: "Notifications", href: "/notifications", icon: Bell, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
   { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
 
@@ -69,6 +70,11 @@ export const navConfig: NavItem[] = [
   { title: "Offer a Ride", href: "/app/offer", icon: PlusCircle, minRole: "employee", roles: ["employee"], group: "Rides" },
   { title: "My Rides", href: "/app/rides", icon: Route, minRole: "employee", roles: ["employee"], group: "Rides" },
   { title: "My Vehicles", href: "/app/vehicles", icon: Car, minRole: "employee", roles: ["employee"], group: "Rides" },
+
+  // ── Account (Slice C — wallet/history/profile employee surfaces) ────────────────────────
+  { title: "Wallet", href: "/wallet", icon: Wallet, minRole: "employee", roles: ["employee"], group: "Account" },
+  { title: "Ride History", href: "/history", icon: History, minRole: "employee", roles: ["employee"], group: "Account" },
+  { title: "Profile", href: "/settings/profile", icon: UserCircle, minRole: "employee", roles: ["employee"], group: "Account" },
 ];
 
 /** Filter the nav for a given role. `roles` allowlist wins when present; else fall back to minRole tier. */

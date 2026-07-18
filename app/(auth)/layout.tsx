@@ -1,22 +1,23 @@
-import Link from "next/link";
 import { Brand } from "@/components/shell/brand";
+import { CoBrandPanel } from "@/components/auth/brand-panel";
 
-/** Centered, single-column auth layout — the ONE place a centered column is correct (it's a form,
- * not a landing page, so design-standards §1's "everything centered" ban doesn't apply). */
+/**
+ * Split auth shell (Coride comp): a dark brand rail on the left (lg+), the form on the right. On
+ * phones the rail is hidden and a compact brand sits above the form. This is the one place a
+ * centred column is correct — it's a form, not a landing page.
+ */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex h-14 items-center px-6">
-        <Brand href="/" />
-      </header>
-      <main className="flex flex-1 items-center justify-center px-4 py-10">
-        <div className="w-full max-w-sm">{children}</div>
-      </main>
-      <footer className="px-6 py-4 text-center text-xs text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
-          ← Back to home
-        </Link>
-      </footer>
+    <div className="grid min-h-[100dvh] lg:grid-cols-2">
+      <CoBrandPanel />
+      <div className="flex items-center justify-center bg-[color:var(--page)] px-[clamp(24px,5vw,56px)] py-10 text-[color:var(--ink)]">
+        <div className="w-full max-w-[414px]">
+          <div className="mb-8 lg:hidden">
+            <Brand href="/" size="lg" />
+          </div>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

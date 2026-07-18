@@ -1,31 +1,51 @@
 import Link from "next/link";
 import { Brand } from "@/components/shell/brand";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { coAmberBtn } from "@/components/co/ui";
 
-/** Public site header — left-aligned brand, right-aligned actions. Not a centered nav. */
+const NAV = [
+  { label: "How it works", href: "#co-how" },
+  { label: "Routes", href: "#co-routes" },
+  { label: "Why Coride", href: "#co-why" },
+  { label: "Trust & safety", href: "#co-safety" },
+];
+
+/** Public site header — Coride treatment: brand, section nav, theme toggle, Sign in + amber CTA. */
 export function PublicHeader({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Brand href="/" />
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {isAuthed ? (
-            <Button asChild size="sm">
-              <Link href="/dashboard">Open app</Link>
-            </Button>
-          ) : (
-            <>
-              <Button asChild size="sm" variant="ghost">
-                <Link href="/login">Sign in</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/register">Get started</Link>
-              </Button>
-            </>
-          )}
-        </div>
+    <header className="sticky top-0 z-50 border-b border-[color:var(--line)] bg-[color:var(--page)]">
+      <div className="mx-auto flex max-w-[1240px] items-center gap-4 px-[clamp(18px,4vw,40px)] py-3.5">
+        <Brand href="/" size="lg" />
+        <nav className="ml-3 hidden items-center gap-0.5 md:flex">
+          {NAV.map((n) => (
+            <a
+              key={n.href}
+              href={n.href}
+              className="rounded-lg px-3 py-2 text-[14.5px] font-medium text-[color:var(--ink-2)] transition-colors hover:bg-[color:var(--surface-2)] hover:text-[color:var(--ink)]"
+            >
+              {n.label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex-1" />
+        <ThemeToggle />
+        {isAuthed ? (
+          <Link href="/dashboard" className={`${coAmberBtn} px-[18px] py-2.5 text-[14.5px]`}>
+            Open app
+          </Link>
+        ) : (
+          <>
+            <Link
+              href="/login"
+              className="hidden whitespace-nowrap rounded-[9px] px-3 py-2.5 text-[14.5px] font-semibold text-[color:var(--ink)] hover:text-[color:var(--amber-strong)] sm:inline-flex"
+            >
+              Sign in
+            </Link>
+            <Link href="/register" className={`${coAmberBtn} px-[18px] py-2.5 text-[14.5px]`}>
+              Get started
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );
