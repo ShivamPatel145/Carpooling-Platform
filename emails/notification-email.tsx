@@ -29,7 +29,10 @@ export interface NotificationEmailProps {
   productName?: string;
 }
 
-const ACCENT = "#0f766e"; // teal-700 — carpooling accent, mirrors lib/design-tokens.ts
+// Dusk Route signal amber. Button uses the amber-600 fill with dark-ink text (5.59:1, AA) —
+// white text on amber fails contrast, so the on-accent colour is the ink, per lib/design-tokens.ts.
+const ACCENT = "#C9820E"; // amber-600 fill
+const ON_ACCENT = "#231703"; // ink text on the amber fill
 
 export function NotificationEmail({
   recipientName,
@@ -84,7 +87,7 @@ const styles = {
   ctaRow: { padding: "8px 0 4px" },
   button: {
     backgroundColor: ACCENT,
-    color: "#ffffff",
+    color: ON_ACCENT,
     fontSize: "14px",
     fontWeight: 600,
     textDecoration: "none",
