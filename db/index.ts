@@ -1,29 +1,55 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
 /**
- * Drizzle over node-postgres — LOCAL Postgres for dev (the Neon serverless driver is disabled; see
- * git history and .env). `db` is SERVER-ONLY.
+ * Drizzle client — SERVER-ONLY, with a switchable driver so we run local Postgres for the hackathon
+ * but can flip to Neon serverless for hosting WITHOUT touching call sites.
  *
- * The auth stack is transitively imported by client shell code
- * (nav.config → lib/permissions → @/auth → @/db), and node-postgres pulls in Node built-ins (fs,
- * net, tls, util) that don't exist in the browser — whereas Neon's serverless driver was
- * browser-safe. Two guards keep `db` off the client:
+ *   DB_DRIVER=postgres (default) → node-postgres (`pg`) against a local/standard Postgres.
+ *   DB_DRIVER=neon               → Neon's serverless HTTP driver (Vercel/Neon hosting).
+ *
+ * We also auto-pick Neon when DB_DRIVER is left at its default but the URL host looks like Neon —
+ * so a Neon connection string "just works" in production even if the flag wasn't set.
+ *
+ * KEEPING `db` OFF THE CLIENT: the auth stack is transitively imported by client shell code
+ * (nav.config → lib/permissions → @/auth → @/db). node-postgres pulls in Node built-ins (fs, net,
+ * tls, util) that don't exist in the browser; Neon's serverless driver is browser-safe. Two guards:
  *   1. next.config.ts aliases `pg` to an empty module in the CLIENT bundle (build time), and
- *   2. the Pool + env are required LAZILY and only when running on the server (runtime), so the
- *      browser never evaluates pg or the server-only env validation.
+ *   2. the driver + env are required LAZILY, only on the server (typeof window === "undefined"),
+ *      so the browser never evaluates pg/neon or the server-only env validation.
  *
- * `schema` is the barrel so `db.query.<table>` relational queries work. The `schema` re-export is
- * browser-safe (pure table definitions) and stays available on both sides.
+ * `schema` (pure table definitions) is browser-safe and re-exported for both sides so
+ * `db.query.<table>` relational queries work.
  */
-type ServerDb = ReturnType<typeof createServerDb>;
+/**
+ * Both drivers expose the same Drizzle query-builder surface, so we present ONE stable type to every
+ * call site (`NodePgDatabase`) regardless of which driver is live. Without this the pg⋃neon union
+ * makes TypeScript pick incompatible `.insert().values()` overloads at some call sites.
+ */
+type ServerDb = NodePgDatabase<typeof schema>;
 
-function createServerDb() {
-  // Lazy requires: only evaluated on the server, so the client bundle never touches pg/env.
-  const { Pool } = require("pg") as typeof import("pg");
+function createServerDb(): ServerDb {
+  // Lazy requires: only evaluated on the server, so the client bundle never touches pg/neon/env.
   const { env } = require("@/lib/env") as typeof import("@/lib/env");
+
+  const useNeon =
+    env.DB_DRIVER === "neon" ||
+    // auto-detect a Neon host when the flag is left at its "postgres" default
+    (env.DB_DRIVER === "postgres" && /neon\.tech/i.test(env.DATABASE_URL));
+
+  if (useNeon) {
+    // Neon serverless HTTP driver — no Pool, no Node sockets. Use the POOLED connection string.
+    const { neon } = require("@neondatabase/serverless") as typeof import("@neondatabase/serverless");
+    const sql = neon(env.DATABASE_URL);
+    // Cast to the unified type: the query-builder surface is identical across drivers.
+    return drizzleNeon(sql, { schema, casing: "snake_case" }) as unknown as ServerDb;
+  }
+
+  // node-postgres against local/standard Postgres (hackathon default).
+  const { Pool } = require("pg") as typeof import("pg");
   const pool = new Pool({ connectionString: env.DATABASE_URL });
-  return drizzle(pool, { schema, casing: "snake_case" });
+  return drizzlePg(pool, { schema, casing: "snake_case" });
 }
 
 export const db: ServerDb =

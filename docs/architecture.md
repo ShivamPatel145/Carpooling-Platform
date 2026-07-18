@@ -12,13 +12,20 @@ custom RBAC · UploadThing · Resend + React Email · @react-pdf/renderer · pnp
 flowchart TD
     Browser -->|cookie| Middleware[middleware.ts · edge · cookie presence only]
     Middleware --> RSC[Server Component · lib/session.ts full validation]
-    Browser -->|fetch via lib/fetcher.ts| API[app/api/<resource>/route.ts]
+    Browser -->|fetch via lib/fetcher.ts| API["app/api/{vehicle,ride,booking,trip,payment,…}/route.ts"]
     RSC --> DB
-    API -->|requirePermission first| Perms[lib/permissions.ts]
-    API -->|withErrorHandler| DB[(Drizzle ORM)]
+    API -->|requirePermission first| Perms[lib/permissions.ts · statement + scopedWhere]
+    API -->|withErrorHandler| DB[(Drizzle ORM · orgId-scoped)]
     DB --> Neon[(PostgreSQL · Neon · pooled)]
     API -->|on mutation| Activity[logActivity → activityLog]
+    API -.->|realtime| Pusher[Pusher · tracking + chat]
+    API -.->|payments| Stripe[Stripe test · webhook]
+    RSC -.->|routing| OSRM[OSRM + Leaflet · route + map]
 ```
+
+Every domain resource is `orgId`-scoped for non-super-admins: `requirePermission` returns
+`{ session, tenant }`, inserts set `tenant.orgId`, and reads pass through `scopedWhere`. A cross-org
+fetch by id returns **404, not 403**. `requireSuperAdmin()` is the one audited cross-tenant path.
 
 ## Request lifecycle
 
@@ -40,7 +47,7 @@ flowchart TD
 
 `lib/permissions.ts` is the single source of truth. Full detail in the `rbac-guard` skill.
 
-```
+```text
 statement {resource → actions}         ← add a resource here
         │
         ▼
@@ -54,10 +61,13 @@ hasPermission(role, resource, action)  ← pure, client-safe
         └─ canEdit / canDelete / canView / canApprove(role, ownerId, userId)  → ownership scope
 ```
 
-- `roleHierarchy` is numeric (`admin:100, manager:50, approver:30, user:10`); `atLeast(role, min)`
+- `roleHierarchy` is numeric (`super_admin:100, company_admin:50, employee:10`); `atLeast(role, min)`
   compares tiers.
 - **Gate both layers.** UI hides (nav, buttons); API enforces. Hiding a nav item is not
   authorization.
+- **Tenancy layers on top of RBAC.** After the permission check, every non-super-admin query is
+  `orgId`-scoped via `scopedWhere(tenant, table, …)`. `requireSuperAdmin()` is the sole cross-tenant
+  path; cross-org access returns **404, not 403**.
 
 ## Extensibility contract
 
@@ -83,22 +93,31 @@ The scaffold is built so the domain drops in **additively**. Five points:
 
 Route every cross-cutting concern through its one utility. Do not roll your own.
 
-| Concern            | Utility / entry point                         | Table / target        |
-| ------------------ | --------------------------------------------- | --------------------- |
-| Authorization      | `lib/permissions.ts`                          | —                     |
-| Server-side auth   | `lib/session.ts`                              | —                     |
-| Error envelope     | `lib/api.ts` (`withErrorHandler`, `ok`, …)    | —                     |
-| Typed errors       | `lib/errors.ts`                               | —                     |
-| Audit trail        | `lib/activity.ts` (`logActivity`)             | `activityLog`         |
-| Notifications      | `db/schema/notification.ts` + bell in shell   | `notification`        |
-| File uploads       | `app/api/uploadthing/core.ts`, `lib/uploadthing.ts` | (UploadThing)   |
-| PDF generation     | `lib/pdf/render.ts` + a document component    | —                     |
-| Transactional email| `lib/email.ts` + `emails/` (React Email)      | —                     |
-| Client fetch       | `lib/fetcher.ts`                              | —                     |
-| Env access         | `lib/env.ts`                                  | —                     |
-| Design tokens      | `lib/design-tokens.ts`                        | —                     |
+| Concern             | Utility / entry point                               | Table / target |
+| ------------------- | --------------------------------------------------- | -------------- |
+| Authorization       | `lib/permissions.ts`                                | —              |
+| Server-side auth    | `lib/session.ts`                                    | —              |
+| Error envelope      | `lib/api.ts` (`withErrorHandler`, `ok`, …)          | —              |
+| Typed errors        | `lib/errors.ts`                                     | —              |
+| Audit trail         | `lib/activity.ts` (`logActivity`)                   | `activityLog`  |
+| Notifications       | `db/schema/notification.ts` + bell in shell         | `notification` |
+| File uploads        | `app/api/uploadthing/core.ts`, `lib/uploadthing.ts` | (UploadThing)  |
+| PDF generation      | `lib/pdf/render.ts` + a document component          | —              |
+| Transactional email | `lib/email.ts` + `emails/` (React Email)            | —              |
+| Client fetch        | `lib/fetcher.ts`                                    | —              |
+| Env access          | `lib/env.ts`                                        | —              |
+| Design tokens       | `lib/design-tokens.ts`                              | —              |
 
-## Build-day architecture notes
+## Carpooling architecture notes
 
-`TODO(build-day)` — record any domain-specific architectural choices (new cross-cutting concern,
-external integration, background job) as an ADR in `docs/decisions.md`.
+- **Multi-tenancy** is load-bearing (`docs/PRD.md` §5): `orgId` on every domain table, set once at
+  join, enforced at the data layer via `scopedWhere` — not per-route. See `docs/decisions.md` ADR-009.
+- **Realtime (Pusher)** carries both live tracking and per-trip chat on one channel keyed per trip;
+  fallback is 4-second polling of `trip.driverLat/Lng`. See ADR-010.
+- **Maps/routing** use OpenStreetMap + Leaflet (render) and OSRM (route/ETA). Route geometry is
+  cached on the `ride` row to avoid re-hitting the OSRM demo server. See ADR-011.
+- **Payments (Stripe test)** confirm via webhook at `/api/stripe/webhook`; the wallet is an
+  append-only `walletEntry` ledger (balance = sum of deltas). See ADR-012.
+- **Reports are computed**, never stored — a query over `trip`+`ride`+`vehicle`+`walletEntry`.
+
+Any new domain-specific architectural choice is logged as an ADR in `docs/decisions.md`.

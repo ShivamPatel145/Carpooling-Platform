@@ -1,15 +1,26 @@
 # Database
 
-PostgreSQL on **Neon**, accessed through **Drizzle ORM** (`drizzle-orm`) with **drizzle-kit** for
-migrations. Full conventions live in the `drizzle-schema` skill — read it before touching any table.
+PostgreSQL accessed through **Drizzle ORM** (`drizzle-orm`) with **drizzle-kit** for migrations.
+Full conventions live in the `drizzle-schema` skill — read it before touching any table.
 
-## Connection
+## Connection & driver
 
-- **Always the POOLED host.** `DATABASE_URL` must contain `-pooler` (Neon console → Connection
-  Details → *Pooled connection*). The direct host exhausts connections under Vercel serverless.
-- **Per-dev branches.** Each developer works on their own Neon branch: `dev-1`, `dev-2`, `dev-3`,
-  `dev-4`. **Migrate against your own branch — never `main`.** `main` is reconciled at deploy time
-  (see `docs/deployment.md`).
+The DB driver is **switchable** — `db/index.ts` (and `migrate.ts`/`seed.ts`) keep both code paths,
+selected by the `DB_DRIVER` env var:
+
+- **`postgres` (default) — local Postgres** via `node-postgres` (`pg`). This is the **hackathon**
+  setup (per reviewer guidance): run a local Postgres and point `DATABASE_URL` at it, e.g.
+  `postgresql://postgres:postgres@localhost:5432/carpooling`.
+- **`neon` — Neon serverless** via the HTTP driver, for **hosting** (Vercel). Use the POOLED host
+  (contains `-pooler`); the direct host exhausts connections under serverless load. Auto-selected
+  when `DATABASE_URL` points at a `neon.tech` host even if `DB_DRIVER` is left at its default.
+
+Flip one env var to switch — no code changes. Both drivers expose the same Drizzle query-builder
+surface, so call sites are identical.
+
+- **Per-dev branches (Neon hosting).** On Neon, each developer works on their own branch (`dev-1`…);
+  **migrate against your own branch — never `main`.** `main` is reconciled at deploy time
+  (see `docs/deployment.md`). Local Postgres is per-machine, so this doesn't apply there.
 - Config: `drizzle.config.ts`. Client + query helper: `db/index.ts`.
 
 ## Migration workflow
@@ -45,16 +56,16 @@ pnpm db:studio       # optional: drizzle-kit studio to inspect the result
 Domain-agnostic tables carried from Phase 0. `user` and `supportTicket` were **extended** for
 carpooling (new columns), never copied.
 
-| Table               | File                          | Purpose                                                        |
-| ------------------- | ----------------------------- | -------------------------------------------------------------- |
+| Table               | File                          | Purpose                                                                                                                                                                              |
+| ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `user`              | `db/schema/user.ts`           | People + `role` enum (`super_admin` / `company_admin` / `employee`). Extended: `orgId`, `phone`, `status`, `avatarUrl`, `department`, `manager`, `officeLocation`, `platformAccess`. |
-| `account`           | `db/schema/account.ts`        | Auth.js OAuth provider accounts (adapter table).               |
-| `session`           | `db/schema/session.ts`        | Auth.js sessions.                                              |
-| `verificationToken` | `db/schema/session.ts`        | Auth.js email/verification tokens (co-located with sessions).  |
-| `notification`      | `db/schema/notification.ts`   | Per-user notifications (typed); drives the shell bell.         |
-| `activityLog`       | `db/schema/activity-log.ts`   | Immutable audit trail; written only via `logActivity`.         |
-| `systemSetting`     | `db/schema/system-setting.ts` | Key/value app settings surfaced in admin settings.             |
-| `supportTicket`     | `db/schema/support-ticket.ts` | Generic ticketing (status + priority enums, assignment). Extended: optional `rideId` so "Report an issue" links to a ride. |
+| `account`           | `db/schema/account.ts`        | Auth.js OAuth provider accounts (adapter table).                                                                                                                                     |
+| `session`           | `db/schema/session.ts`        | Auth.js sessions.                                                                                                                                                                    |
+| `verificationToken` | `db/schema/session.ts`        | Auth.js email/verification tokens (co-located with sessions).                                                                                                                        |
+| `notification`      | `db/schema/notification.ts`   | Per-user notifications (typed); drives the shell bell.                                                                                                                               |
+| `activityLog`       | `db/schema/activity-log.ts`   | Immutable audit trail; written only via `logActivity`.                                                                                                                               |
+| `systemSetting`     | `db/schema/system-setting.ts` | Key/value app settings surfaced in admin settings.                                                                                                                                   |
+| `supportTicket`     | `db/schema/support-ticket.ts` | Generic ticketing (status + priority enums, assignment). Extended: optional `rideId` so "Report an issue" links to a ride.                                                           |
 
 > Note: `verificationToken` lives inside `session.ts` (Auth.js adapter tables are grouped), which is
 > the one intentional exception to strict one-file-per-table.
@@ -66,19 +77,19 @@ carries a non-null `orgId` FK to `organization` (the tenant root; the sole excep
 lat/lng are `numeric` (Drizzle returns strings — coerce in Zod); geo points are `jsonb` (`GeoPoint`
 from `db/schema/ride.ts`). Slice ownership: `docs/team-ownership.md`.
 
-| Table         | File                        | Purpose                                                              | Slice |
-| ------------- | --------------------------- | ------------------------------------------------------------------- | ----- |
-| `organization`| `db/schema/organization.ts` | Tenant root: name, allowed email domains, currency, cost config, auto-approve. **No `orgId`.** | D |
-| `invitation`  | `db/schema/invitation.ts`   | Tokenized invites (bootstrap admin · staff invite). Backs onboarding Paths 1 & 2. | D |
-| `vehicle`     | `db/schema/vehicle.ts`      | Employee vehicles + approval status. The reference org-scoped CRUD slice. | A |
-| `ride`        | `db/schema/ride.ts`         | Published rides: origin/destination (jsonb), seats, fare, cached OSRM route geometry. | A |
-| `booking`     | `db/schema/booking.ts`      | Seat bookings; atomic conditional decrement of `ride.seatsAvailable`. | A |
-| `savedPlace`  | `db/schema/saved-place.ts`  | Home/Office/custom locations; power swap + autofill on Find/Offer.   | B     |
-| `trip`        | `db/schema/trip.ts`         | Trip lifecycle (one per started ride) + live driver location.       | B     |
-| `tripEvent`   | `db/schema/trip-event.ts`   | Trip audit + tracking event stream.                                 | B     |
-| `message`     | `db/schema/message.ts`      | Per-trip chat, delivered over Pusher.                               | B     |
-| `payment`     | `db/schema/payment.ts`      | One payment per booking; Stripe payment-intent id.                  | C     |
-| `walletEntry` | `db/schema/wallet-entry.ts` | Append-only ledger; balance = sum of deltas.                        | C     |
+| Table          | File                        | Purpose                                                                                        | Slice |
+| -------------- | --------------------------- | ---------------------------------------------------------------------------------------------- | ----- |
+| `organization` | `db/schema/organization.ts` | Tenant root: name, allowed email domains, currency, cost config, auto-approve. **No `orgId`.** | D     |
+| `invitation`   | `db/schema/invitation.ts`   | Tokenized invites (bootstrap admin · staff invite). Backs onboarding Paths 1 & 2.              | D     |
+| `vehicle`      | `db/schema/vehicle.ts`      | Employee vehicles + approval status. The reference org-scoped CRUD slice.                      | A     |
+| `ride`         | `db/schema/ride.ts`         | Published rides: origin/destination (jsonb), seats, fare, cached OSRM route geometry.          | A     |
+| `booking`      | `db/schema/booking.ts`      | Seat bookings; atomic conditional decrement of `ride.seatsAvailable`.                          | A     |
+| `savedPlace`   | `db/schema/saved-place.ts`  | Home/Office/custom locations; power swap + autofill on Find/Offer.                             | B     |
+| `trip`         | `db/schema/trip.ts`         | Trip lifecycle (one per started ride) + live driver location.                                  | B     |
+| `tripEvent`    | `db/schema/trip-event.ts`   | Trip audit + tracking event stream.                                                            | B     |
+| `message`      | `db/schema/message.ts`      | Per-trip chat, delivered over Pusher.                                                          | B     |
+| `payment`      | `db/schema/payment.ts`      | One payment per booking; Stripe payment-intent id.                                             | C     |
+| `walletEntry`  | `db/schema/wallet-entry.ts` | Append-only ledger; balance = sum of deltas.                                                   | C     |
 
 **Reports are computed, not stored** — a query over `trip` + `ride` + `vehicle` + `walletEntry`,
 `orgId`-scoped. The Financial Summary (Revenue / Fuel / Maintenance / Net Profit) derives the same

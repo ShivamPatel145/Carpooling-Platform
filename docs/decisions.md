@@ -129,8 +129,85 @@ Cost: `@react-pdf`'s layout model (flex subset), not full HTML/CSS. PDF routes m
 
 ---
 
-## Build-day decisions
+## ADR-009 — Multi-tenancy enforced at the data layer, not per-route
 
-`TODO(build-day)` — append domain decisions as ADR-009+ using the same template. Candidates:
-chosen domain model, any external integration, soft-delete on specific tables, new roles/resources,
-background jobs, deploy specifics.
+**Status:** Accepted
+
+**Context:** The carpooling platform is multi-tenant — Org A must never see Org B's data. Leaving
+each route to remember an `orgId` filter is the classic tenancy leak: one forgotten `where` clause
+exposes another company's rides.
+
+**Decision:** Every domain table carries a non-null `orgId` (except `organization`), set once at
+join time and immutable after. `requirePermission` resolves the session's tenant and every
+non-super-admin query passes through `scopedWhere(tenant, table, extraClause?)` in
+`lib/permissions.ts`. `requireSuperAdmin()` is the single, named cross-tenant exception. A cross-org
+fetch by id returns **404, not 403** — we don't admit the record exists.
+
+**Consequences:** Isolation is structural, not per-route discipline. The reviewer question "how do
+you stop Org A seeing Org B" has a one-sentence answer. QA runs a cross-org 404 negative test. See
+`docs/PRD.md` §5 and the `rbac-guard` skill.
+
+---
+
+## ADR-010 — Pusher for realtime; polling fallback decided by hour 6
+
+**Status:** Accepted
+
+**Context:** Live trip tracking and per-trip chat both need realtime. Vercel serverless can't hold
+WebSocket connections.
+
+**Decision:** Use **Pusher** (managed WebSockets) for **both** tracking and chat on one channel
+keyed per trip. If Pusher isn't solid by hour 6, fall back to 4-second polling of
+`trip.driverLat/Lng` — same UX, no channel plumbing. The call is made at hour 6, not hour 20.
+
+**Consequences:** No socket server to run; one realtime system, not two. Auth via
+`/api/pusher/auth` for private channels. See `docs/PRD.md` §7.6–7.7.
+
+---
+
+## ADR-011 — OpenStreetMap + Leaflet + OSRM, not Google Maps
+
+**Status:** Accepted
+
+**Context:** Find/Offer need route rendering + distance/ETA; live tracking needs a map. Google Maps
+means an API key, billing, and a quota to blow at hour 20.
+
+**Decision:** **Leaflet** (render, OSM tiles) + **OSRM** (routing/ETA), no API key. Cache
+`routeGeoJSON`, `distanceKm`, `durationMin` on the `ride` row so we don't re-hit OSRM per view (also
+mitigates demo-server rate limits). Note self-host OSRM for production.
+
+**Consequences:** Zero-key, zero-billing for the hackathon. The shared map component (Slice A) is
+consumed by Find, Offer, and Slice B tracking. See `docs/PRD.md` §7.4.
+
+---
+
+## ADR-012 — Stripe test mode + append-only wallet ledger
+
+**Status:** Accepted
+
+**Context:** Payments must settle on trip completion, with a rechargeable wallet. Razorpay was the
+reference; we need fast, auditable integration.
+
+**Decision:** **Stripe test mode** (config swap from Razorpay; sandbox parity). The wallet is an
+**append-only** `walletEntry` ledger — balance = sum of deltas, never a mutable balance column.
+Recharge = a positive entry funded by a Stripe intent; spend = a negative entry. Stripe confirms via
+webhook at `/api/stripe/webhook`.
+
+**Consequences:** Auditable by construction; the ledger doubles as an analytics source. Webhooks
+must be verified against the **deployed URL**, not localhost. See `docs/PRD.md` §7.8.
+
+---
+
+## ADR-013 — Three roles (Super Admin added), not the spec's two
+
+**Status:** Accepted
+
+**Context:** The spec mandates one admin (config-only) and one employee (mode-switcher). But
+organizations need to onboard through the product, not hand-seeded SQL.
+
+**Decision:** Add **`super_admin`** (100) above `company_admin` (50) and `employee` (10). The spec's
+two roles are intact; Super Admin only onboards organizations and views cross-org metrics — and is
+the sole, audited tenancy exception (ADR-009).
+
+**Consequences:** Orgs onboard self-service (three paths in `docs/PRD.md` §4.3). Adding the role was
+one entry in `lib/permissions.ts`, not a conditional. See `db/schema/user.ts` (`userRoleEnum`).
