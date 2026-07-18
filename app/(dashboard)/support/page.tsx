@@ -52,17 +52,11 @@ export default async function SupportPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="m-0 font-display text-[clamp(22px,3vw,28px)] font-bold tracking-[-0.02em] text-[color:var(--ink)]">
-            Support
-          </h2>
-          <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
-            Raise a ticket and we&apos;ll help.
-          </p>
+      {canCreate && (
+        <div className="mb-6 flex justify-end">
+          <CreateTicketDialog />
         </div>
-        {canCreate && <CreateTicketDialog />}
-      </div>
+      )}
 
       {tickets.length === 0 ? (
         <div className={`${coCard} flex flex-col items-center justify-center px-6 py-16 text-center`}>
