@@ -7,7 +7,7 @@ import { ComingSoon } from "@/components/coming-soon";
 export const metadata: Metadata = { title: "Reports" };
 
 /** Stub — Slice D builds analytics + PDF export build-day. The PDF pipeline already works
- *  (see /api/demo-entity/[id]/invoice); charts wait on domain data. */
+ *  (see lib/pdf/render.ts); charts wait on domain data. */
 export default async function ReportsPage() {
   await requirePermissionPage("report", "read");
   return (

@@ -8,8 +8,8 @@ import { api } from "@/lib/fetcher";
 import { formatDateTime, humanize, shortId } from "@/lib/utils";
 
 /**
- * Read-only audit trail viewer. Another example of the generic DataTable applied to a second
- * entity — demonstrates the pattern beyond features/_demo without adding domain assumptions.
+ * Read-only audit trail viewer. Another application of the generic DataTable — read-only, with no
+ * domain assumptions.
  */
 interface ActivityRow {
   id: string;
