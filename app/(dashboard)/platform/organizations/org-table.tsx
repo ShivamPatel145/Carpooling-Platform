@@ -4,9 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Search } from "lucide-react";
 import { CoAvatar, coInitials, CoEyebrow } from "@/components/co/ui";
-import { OrgRowActions, type OrgRow } from "@/features/organization/org-columns";
-import { CreateOrgDialog } from "@/features/organization/org-form";
-import { InviteAdminDialog } from "@/features/organization/invite-admin-dialog";
+import { OrgRowActions, type OrgRow, CreateOrgDialog, InviteAdminDialog } from "@/features/organization";
 
 interface OrgTableProps {
   initialRows: OrgRow[];

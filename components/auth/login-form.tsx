@@ -35,7 +35,7 @@ function homeFor(role: string | undefined): string {
   return "/app";
 }
 
-export function LoginForm({ googleEnabled, googleSlot }: { googleEnabled: boolean; googleSlot?: React.ReactNode }) {
+export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl");
@@ -203,20 +203,6 @@ export function LoginForm({ googleEnabled, googleSlot }: { googleEnabled: boolea
           Sign in
         </button>
       </form>
-
-      {googleEnabled && (
-        <>
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[color:var(--line)]" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[color:var(--page)] px-2 text-[color:var(--ink-3)]">or</span>
-            </div>
-          </div>
-          {googleSlot}
-        </>
-      )}
 
       <p className="mt-[22px] text-center text-[13.5px] text-[color:var(--ink-3)]">
         New to Coride?{" "}

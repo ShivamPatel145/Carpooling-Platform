@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { requireRolePage } from "@/lib/session";
 import { db } from "@/db";
 import { organization } from "@/db/schema";
-import { OrgSettingsForm } from "@/features/organization/org-settings-form";
+import { OrgSettingsForm } from "@/features/organization";
 
 export const metadata: Metadata = { title: "Settings" };
 
