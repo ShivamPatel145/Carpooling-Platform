@@ -42,8 +42,9 @@ export function OfferRideForm() {
 
   // Auto-select the first approved vehicle to prevent validation errors if they forget to click it
   React.useEffect(() => {
-    if (vehicles && vehicles.length > 0 && !form.getValues("vehicleId")) {
-      form.setValue("vehicleId", vehicles[0].id, { shouldValidate: true });
+    const first = vehicles?.[0];
+    if (first && !form.getValues("vehicleId")) {
+      form.setValue("vehicleId", first.id, { shouldValidate: true });
     }
   }, [vehicles, form]);
 
