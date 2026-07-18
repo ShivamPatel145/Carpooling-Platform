@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { organization, walletEntry } from "@/db/schema";
 import { coCard } from "@/components/co/ui";
 import { WalletRecharge } from "@/features/wallet/components/wallet-recharge";
+import { PaymentVerifier } from "@/features/wallet/components/payment-verifier";
+import * as React from "react";
 
 export const metadata: Metadata = { title: "Wallet" };
 
@@ -59,6 +61,10 @@ export default async function WalletPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
         {/* Balance + recharge */}
         <div className="flex flex-col gap-4">
+          <React.Suspense fallback={null}>
+            <PaymentVerifier />
+          </React.Suspense>
+          
           <div className="rounded-2xl border border-[color:var(--band-line)] bg-[color:var(--band)] p-6 text-[color:var(--on-band)]">
             <div className="font-sans text-[12px] font-semibold uppercase tracking-[0.08em] text-[color:var(--on-band-2)]">
               Wallet balance

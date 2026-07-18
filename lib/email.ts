@@ -1,19 +1,25 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { render } from "@react-email/components";
 import { env, features } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { NotificationEmail, type NotificationEmailProps } from "@/emails/notification-email";
 
 /**
- * Email utility on Resend + React Email. Cross-cutting — every slice sends through here, never a
- * per-feature mailer (extensibility contract #4). Degrades gracefully: if RESEND_API_KEY is
+ * Email utility using Nodemailer + React Email. Cross-cutting — every slice sends through here, never a
+ * per-feature mailer (extensibility contract #4). Degrades gracefully: if EMAIL_USER is
  * absent, it logs the email instead of throwing, so Phase 0 and local dev keep working.
- *
- * From address: falls back to Resend's onboarding sender until a verified domain is configured.
  */
-const resend = features.email ? new Resend(env.RESEND_API_KEY) : null;
+const transporter = features.email
+  ? nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: env.EMAIL_USER,
+        pass: env.EMAIL_PASS,
+      },
+    })
+  : null;
 
-const FROM = "Operations Platform <onboarding@resend.dev>"; // TODO(build-day): verified domain sender
+const FROM = `"Carpooling Platform" <${env.EMAIL_USER || "onboarding@resend.dev"}>`;
 
 export interface SendEmailInput {
   to: string | string[];
@@ -25,26 +31,23 @@ export interface SendEmailInput {
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; id?: string }> {
-  if (!resend) {
-    logger.warn("Email skipped (RESEND_API_KEY not set)", { to: input.to, subject: input.subject });
+  if (!transporter) {
+    logger.warn("Email skipped (EMAIL_USER not set)", { to: input.to, subject: input.subject });
     return { ok: false };
   }
   try {
     let html = input.html;
     if (!html && input.react) html = await render(input.react);
 
-    const { data, error } = await resend.emails.send({
+    const info = await transporter.sendMail({
       from: FROM,
-      to: input.to,
+      to: Array.isArray(input.to) ? input.to.join(", ") : input.to,
       subject: input.subject,
       html: html ?? "",
       text: input.text,
     });
-    if (error) {
-      logger.error("Resend send failed", { error, subject: input.subject });
-      return { ok: false };
-    }
-    return { ok: true, id: data?.id };
+    
+    return { ok: true, id: info.messageId };
   } catch (err) {
     logger.error("sendEmail threw", { err, subject: input.subject });
     return { ok: false };
