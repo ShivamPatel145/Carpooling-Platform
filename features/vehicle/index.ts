@@ -1,15 +1,16 @@
 /**
- * features/vehicle — an employee's registered cars (Slice A). Copied from features/_demo/ and
- * adapted: orgId-scoped queries (scopedWhere), ownership-scoped edit/delete, approval gate.
+ * features/vehicle — an employee's registered cars (Slice A). orgId-scoped queries (scopedWhere),
+ * ownership-scoped edit/delete, admin approval gate.
  *
  *   schema.ts   → the ONE Zod schema (re-exported from db/schema/vehicle), shared with the API
  *   hooks.ts    → TanStack Query hooks + mutations (invalidate on success, toast)
  *   columns.tsx → DataTable column defs
  *   form.tsx    → RHF + zodResolver on the shared schema
- *   components/ → list, create dialog, row actions
+ *   components/ → list, create dialog, row actions, admin approval table
  */
 export { VehicleList } from "./components/vehicle-list";
 export { CreateVehicleDialog } from "./components/create-dialog";
+export { VehicleAdminTable, type VehicleAdminRow } from "./components/admin-table";
 export { VehicleForm } from "./form";
 export { vehicleColumns } from "./columns";
 export * from "./hooks";

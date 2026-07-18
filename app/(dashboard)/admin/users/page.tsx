@@ -5,8 +5,7 @@ import { scopedWhere } from "@/lib/permissions";
 import { db } from "@/db";
 import { user, ride } from "@/db/schema";
 import { DataTable } from "@/components/data-table";
-import { userColumns, type UserRow } from "@/features/admin-users/user-columns";
-import { InviteEmployeeDialog } from "@/features/admin-users/invite-employee-dialog";
+import { userColumns, type UserRow, InviteEmployeeDialog } from "@/features/user";
 
 export const metadata: Metadata = { title: "Employees" };
 

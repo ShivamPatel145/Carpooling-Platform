@@ -3,7 +3,7 @@ import { requireRolePage } from "@/lib/session";
 import { scopedWhere } from "@/lib/permissions";
 import { db } from "@/db";
 import { vehicle, user } from "@/db/schema";
-import { VehicleAdminTable } from "@/features/admin-vehicles/vehicle-admin-table";
+import { VehicleAdminTable } from "@/features/vehicle";
 
 export const metadata: Metadata = { title: "Vehicles" };
 

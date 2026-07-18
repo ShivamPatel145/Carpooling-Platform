@@ -32,7 +32,7 @@ const coInput =
   "w-full rounded-[10px] border border-[color:var(--line-2)] bg-[color:var(--surface-2)] px-3.5 py-3 text-[15px] text-[color:var(--ink)] outline-none transition-colors placeholder:text-[color:var(--ink-3)] focus:border-[color:var(--amber-strong)]";
 const coLabel = "mb-1.5 block text-[13px] text-[color:var(--ink-2)]";
 
-export function RegisterForm({ googleEnabled, googleSlot }: { googleEnabled: boolean; googleSlot?: React.ReactNode }) {
+export function RegisterForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, setPending] = React.useState(false);
@@ -196,19 +196,6 @@ export function RegisterForm({ googleEnabled, googleSlot }: { googleEnabled: boo
         </button>
       </form>
 
-      {googleEnabled && (
-        <>
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[color:var(--line)]" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[color:var(--page)] px-2 text-[color:var(--ink-3)]">or</span>
-            </div>
-          </div>
-          {googleSlot}
-        </>
-      )}
 
       <p className="mt-[22px] text-center text-[13.5px] text-[color:var(--ink-3)]">
         Already have an account?{" "}
