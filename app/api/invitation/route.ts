@@ -91,7 +91,7 @@ export const POST = withErrorHandler(async (req: Request) => {
     email,
     `You've been invited to join the Carpooling Platform`,
     {
-      title: "You're invited!",
+      heading: "You're invited!",
       body: `You've been invited as ${role === "company_admin" ? "Company Admin" : "an Employee"}. Accept before ${expiresAt.toLocaleDateString()}.`,
       ctaLabel: "Accept Invitation",
       ctaUrl: acceptUrl,

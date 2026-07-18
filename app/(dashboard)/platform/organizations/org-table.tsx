@@ -4,9 +4,9 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
 import { DataTable } from "@/components/data-table";
-import { getOrgColumns, type OrgRow } from "./org-columns";
-import { CreateOrgDialog } from "./org-form";
-import { InviteAdminDialog } from "./invite-admin-dialog";
+import { getOrgColumns, type OrgRow } from "@/features/organization/org-columns";
+import { CreateOrgDialog } from "@/features/organization/org-form";
+import { InviteAdminDialog } from "@/features/organization/invite-admin-dialog";
 
 interface OrgTableProps {
   initialRows: OrgRow[];

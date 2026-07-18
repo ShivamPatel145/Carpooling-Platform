@@ -70,7 +70,7 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     const acceptUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/accept-invite?token=${token}`;
     await sendNotificationEmail(inviteData.email, `You've been invited to manage ${org!.name} on Carpooling Platform`, {
-      title: `Welcome to ${org!.name}!`,
+      heading: `Welcome to ${org!.name}!`,
       body: `You've been invited as the Company Admin for ${org!.name}. Click below to set up your account.`,
       ctaLabel: "Accept Invitation",
       ctaUrl: acceptUrl,

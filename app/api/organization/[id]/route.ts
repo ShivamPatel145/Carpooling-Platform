@@ -34,9 +34,10 @@ export const GET = withErrorHandler(async (_req: Request, ctx: Ctx) => {
     tenant = result.tenant;
   }
 
-  const where = isSuperAdmin
-    ? eq(organization.id, id)
-    : scopedWhere(tenant, organization, eq(organization.id, id));
+  if (!isSuperAdmin && tenant?.orgId !== id) {
+    throw new NotFoundError("Organization not found.");
+  }
+  const where = eq(organization.id, id);
 
   const row = await db.query.organization.findFirst({ where });
   if (!row) throw new NotFoundError("Organization not found.");
@@ -59,9 +60,10 @@ export const PATCH = withErrorHandler(async (req: Request, ctx: Ctx) => {
     tenant = result.tenant;
   }
 
-  const where = isSuperAdmin
-    ? eq(organization.id, id)
-    : scopedWhere(tenant, organization, eq(organization.id, id));
+  if (!isSuperAdmin && tenant?.orgId !== id) {
+    throw new NotFoundError("Organization not found.");
+  }
+  const where = eq(organization.id, id);
 
   const existing = await db.query.organization.findFirst({ where });
   if (!existing) throw new NotFoundError("Organization not found.");
