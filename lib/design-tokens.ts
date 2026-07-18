@@ -20,22 +20,29 @@
 /* ────────────────────────────────────────────────────────────────────────────────────────
  * ACCENT — THE ONE DOMAIN-DERIVED COLOUR
  *
- * DOMAIN: Enterprise Carpooling. Accent = teal-700 — movement + sustainability, a disciplined
- * signal colour used sparingly (not a brand statement). NOT purple, NOT a gradient. Passes WCAG AA:
- * 5.55:1 both as link/icon text on white and as a fill under white text. Dark-mode uses teal-400
- * (10.61:1 on the near-black surface). See `docs/design-standards.md` §4.
+ * DESIGN DIRECTION: "Dusk Route" — warm-charcoal base + SIGNAL-AMBER accent. Amber is the brand
+ * signal, used sparingly. The full palette (incl. the warm-charcoal base) is produced in Claude
+ * Design and arrives as a handoff; here we set ONLY the accent token to match it.
+ *
+ * WCAG (verified): amber-500 on charcoal ink #1A1D24 = 8.35:1; ink-on-amber = 8.70:1 (both AA).
+ * On-accent TEXT is the dark ink #231703, NOT white (white on amber fails AA). Note: on the
+ * current Phase-0 light/white surface, amber-500 as text is low-contrast — that is resolved by the
+ * incoming charcoal base, not compensated here. See `docs/design-standards.md` §4.
  *
  * ►► This is the ONE colour the domain sets. To change it, edit the HSL below AND the matching
  *    `--accent` / `--accent-foreground` lines in `app/globals.css` (both :root and .dark).
- *    No other colour changes. Verify AA after any change.
  * ──────────────────────────────────────────────────────────────────────────────────────── */
 export const ACCENT = {
-  /** teal-700 — the carpooling accent. hsl(175 77% 26%) === #0f766e */
-  hsl: "175 77% 26%",
-  /** text/icon colour that sits ON the accent fill. near-white. */
-  foregroundHsl: "0 0% 100%",
-  /** human note kept in sync with the value above */
-  note: "Carpooling accent: teal-700 (movement + sustainability). Dark-mode variant is teal-400.",
+  /** amber-500 — the signal accent. hsl(38 90% 55%) === #F4A726. Light + dark. */
+  hsl: "38 90% 55%",
+  /** text/icon colour that sits ON the amber fill: dark ink. hsl(38 84% 7%) === #231703. */
+  foregroundHsl: "38 84% 7%",
+  /** amber-600 — the primary button/fill in light mode. hsl(37 87% 42%) === #C9820E. */
+  fillHsl: "37 87% 42%",
+  /** amber-50 — soft status-badge accent fill in light mode. hsl(38 90% 92%) === #FDF0D9. */
+  badgeHsl: "38 90% 92%",
+  /** human note kept in sync with the values above */
+  note: "Dusk Route accent: signal amber (amber-500 #F4A726). On-accent text is ink #231703.",
 } as const;
 
 /* ────────────────────────────────────────────────────────────────────────────────────────
