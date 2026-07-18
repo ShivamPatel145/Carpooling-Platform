@@ -45,7 +45,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         // Block inactive membership and revoked platform access at sign-in.
         if (!found || !found.passwordHash) return null;
-        if (found.status === "inactive" || found.platformAccess === "revoked") return null;
+        // pending = waiting in the admin approval queue (autoApproveDomain=false orgs);
+        // inactive = deactivated; revoked = platform access removed. None may sign in.
+        if (found.status !== "active" || found.platformAccess === "revoked") return null;
 
         const ok = await verifyPassword(password, found.passwordHash);
         if (!ok) return null;
