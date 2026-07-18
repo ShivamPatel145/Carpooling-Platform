@@ -7,8 +7,8 @@ custom RBAC · UploadThing · Resend + React Email · @react-pdf/renderer · pnp
 ## High-level diagram
 
 ```mermaid
-%% TODO(build-day): add domain entities as sibling boxes to "demo-entity" —
-%% the shape does not change, only the entity names.
+%% Domain entities (vehicle, ride, booking, trip, payment, …) share this shape —
+%% only the entity names change; the request path does not.
 flowchart TD
     Browser -->|cookie| Middleware[middleware.ts · edge · cookie presence only]
     Middleware --> RSC[Server Component · lib/session.ts full validation]
@@ -65,9 +65,9 @@ The scaffold is built so the domain drops in **additively**. Five points:
 
 1. **A new entity is purely additive.** It is four new paths and one config line — with **zero
    edits to existing feature code**:
-   - `features/<entity>/` (copy `features/_demo/`)
+   - `features/<entity>/` (copy `features/vehicle/`)
    - `db/schema/<entity>.ts` (+ one export line in `db/schema/index.ts`, integrator only)
-   - `app/api/<entity>/` (copy the demo-entity route shape)
+   - `app/api/<entity>/` (copy the `vehicle` route shape)
    - one entry in `nav.config.ts` (integrator only)
 2. **Sections are config-driven, not hand-laid.** `nav.config.ts`, `dashboard.config.ts`,
    `homepage.config.ts` are data arrays. Adding a nav item / dashboard widget / homepage section

@@ -68,7 +68,7 @@ Shell region legend: **Sidebar** (role nav), **Topbar** (brand/bell/theme/user),
 
 | Wireframe screen | Route | Region | Components | Status |
 |---|---|---|---|---|
-| My Vehicle (list, status) | `/app/vehicles` | Main | DataTable, StatusBadge | NEW (copy _demo) |
+| My Vehicle (list, status) | `/app/vehicles` | Main | DataTable, StatusBadge | DONE (Slice A) |
 | Add / Manage Vehicle | `/app/vehicles` + Dialog | Dialog | form (vehicleFormSchema) | NEW |
 | Registered Vehicles (admin, approve/inactive) | `/admin/vehicles` | Main | DataTable, approve action | NEW (D) |
 | Vehicle Details | `/admin/vehicles/[id]` | Main | detail view | NEW (D) |

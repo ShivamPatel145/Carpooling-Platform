@@ -26,7 +26,7 @@ sits at the center of every seam.
 | **Owns (tables)** | `vehicle`, `ride`, `booking` |
 | **Route group** | `/app/find`, `/app/offer`, `/app/rides/*`, `/app/vehicles` (employee app) |
 | **API folders** | `app/api/vehicle/`, `app/api/ride/`, `app/api/booking/` (fixed shape: route/[id]/my/stats) |
-| **Feature folders** | `features/vehicle/`, `features/ride/`, `features/booking/` (copy `features/_demo/`) |
+| **Feature folders** | `features/vehicle/` (reference slice), `features/ride/`, `features/booking/` |
 | **Shared component owned** | the **Leaflet + OSRM map** (Find, Offer, and Slice B's tracking all consume it) |
 | **MUST NOT touch** | the shared files above; Slice B's `trip*`/`message`; Slice C's `payment`/`wallet`; Slice D's `organization`/`user` |
 | **Done when** | publish → another employee finds & books → seats decrement → both see it in My Trips |

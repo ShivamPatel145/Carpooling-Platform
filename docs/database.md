@@ -53,7 +53,7 @@ All domain-agnostic. `TODO(build-day)` decides which to reuse as-is vs extend by
 | `activityLog`       | `db/schema/activity-log.ts`   | Immutable audit trail; written only via `logActivity`.         |
 | `systemSetting`     | `db/schema/system-setting.ts` | Key/value app settings surfaced in admin settings.             |
 | `supportTicket`     | `db/schema/support-ticket.ts` | Generic ticketing (status + priority enums, assignment).       |
-| `demoEntity`        | `db/schema/demo-entity.ts`    | The CRUD copy template — the reference for a domain entity.     |
+| `vehicle`           | `db/schema/vehicle.ts`        | Employee vehicles — the reference org-scoped CRUD table.        |
 
 > Note: `verificationToken` lives inside `session.ts` (Auth.js adapter tables are grouped), which is
 > the one intentional exception to strict one-file-per-table.

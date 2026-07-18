@@ -45,24 +45,26 @@ Success helpers: `ok(data)`, `created(data)` (201), `noContent()` (204).
 ## The required pattern: `requirePermission` first, `logActivity` on mutation
 
 Every handler is wrapped in `withErrorHandler`, **opens** with `requirePermission(resource, action)`,
-and every mutation **closes** with `logActivity`. This is the reference from
-`app/api/demo-entity/route.ts`:
+and every mutation **closes** with `logActivity`. Because the domain is multi-tenant, inserts set
+`orgId` from the tenant and reads go through `scopedWhere`. This is the reference from
+`app/api/vehicle/route.ts`:
 
 ```ts
 export const POST = withErrorHandler(async (req: Request) => {
-  const session = await requirePermission("demoEntity", "create"); // ← FIRST. Always.
-  const values = demoEntityFormSchema.parse(await req.json());       // ← shared Zod schema
+  const { session, tenant } = await requirePermission("vehicle", "create"); // ← FIRST. Always.
+  const values = vehicleFormSchema.parse(await req.json());                  // ← shared Zod schema
 
-  const [row] = await db.insert(demoEntity)
-    .values({ ownerId: session.user.id, /* … */ })
+  const [row] = await db.insert(vehicle)
+    .values({ orgId: tenant.orgId!, ownerId: session.user.id, /* … */ })     // ← tenant-scoped insert
     .returning();
 
-  await logActivity({                                               // ← on every mutation
+  await logActivity({                                                        // ← on every mutation
+    orgId: tenant.orgId,
     actorId: session.user.id,
     action: "create",
-    resource: "demoEntity",
+    resource: "vehicle",
     resourceId: row!.id,
-    req,                                                            // captures IP + user-agent
+    req,                                                                     // captures IP + user-agent
   });
 
   return created(row);
@@ -74,25 +76,67 @@ Ownership-scoped routes additionally use `canEdit / canDelete / canView / canApp
 
 ## Endpoint catalog
 
-Endpoints that exist in the scaffold today.
+The live domain endpoints, by slice. Every route is `orgId`-scoped for non-super-admins; a cross-org
+id returns **404, not 403**.
 
-| Method | Path                                  | Resource:Action    | Description                                  |
-| ------ | ------------------------------------- | ------------------ | -------------------------------------------- |
-| GET    | `/api/demo-entity`                    | `demoEntity:read`  | List all demo entities.                      |
-| POST   | `/api/demo-entity`                    | `demoEntity:create`| Create a demo entity (owner = session user). |
-| GET    | `/api/demo-entity/[id]`               | `demoEntity:read`  | Get one.                                     |
-| PATCH  | `/api/demo-entity/[id]`               | `demoEntity:update`| Update one (ownership-scoped).               |
-| DELETE | `/api/demo-entity/[id]`               | `demoEntity:delete`| Delete one (ownership-scoped).               |
-| GET    | `/api/demo-entity/my`                 | `demoEntity:read`  | The current user's demo entities.            |
-| GET    | `/api/demo-entity/stats`              | `demoEntity:read`  | Aggregate counts for dashboard widgets.      |
-| GET    | `/api/demo-entity/[id]/invoice`       | `report:export`    | Render a placeholder invoice PDF (Node runtime). |
-| POST   | `/api/auth/register`                  | — (public)         | Credentials sign-up.                         |
-| *      | `/api/auth/[...nextauth]`             | — (Auth.js)        | Auth.js handler: sign-in, callbacks, session, OAuth. |
-| *      | `/api/uploadthing`                    | signed-in          | UploadThing file router (auth-gated).        |
+### Slice A — ride engine (vehicle · ride · booking)
 
-## Domain endpoints (build-day)
+| Method | Path                        | Resource:Action    | Description                                              |
+| ------ | --------------------------- | ------------------ | -------------------------------------------------------- |
+| GET    | `/api/vehicle`              | `vehicle:read`     | List vehicles in the org.                                |
+| POST   | `/api/vehicle`              | `vehicle:create`   | Register a vehicle (starts `inactive`, awaits approval). |
+| GET/PATCH/DELETE | `/api/vehicle/[id]` | `vehicle:*`      | Get/update/delete one (ownership-scoped).                |
+| GET    | `/api/vehicle/my`           | `vehicle:read`     | The caller's vehicles (`?approved=1` for the ride pool). |
+| POST   | `/api/ride`                 | `ride:create`      | Publish a ride; caches the OSRM route on the row.        |
+| GET    | `/api/ride` · `/api/ride/my`| `ride:read`        | Published rides in org · the caller's own rides.         |
+| GET    | `/api/ride/[id]`            | `ride:read`        | One ride, enriched with driver + vehicle.                |
+| POST   | `/api/ride/[id]/cancel`     | `ride:cancel`      | Cancel a ride; releases its bookings.                    |
+| POST   | `/api/ride/search`          | `ride:read`        | Proximity match (org-scoped SQL + haversine rank).       |
+| POST   | `/api/booking`              | `booking:create`   | Book seat(s) — atomic conditional decrement (409 on race).|
+| GET    | `/api/booking/my`           | `booking:read`     | The caller's bookings.                                   |
+| POST   | `/api/booking/[id]/cancel`  | `booking:cancel`   | Cancel a booking; returns the seat to the ride.          |
 
-`TODO(build-day)` — copy the `demo-entity` route shape per domain resource. Add rows here as you go.
+### Slice B — trips, tracking, chat, saved places
+
+| Method | Path                          | Resource:Action | Description                              |
+| ------ | ----------------------------- | --------------- | ---------------------------------------- |
+| GET/POST | `/api/trip`                 | `trip:*`        | Trip lifecycle (created from a booking). |
+| GET    | `/api/trip/[id]`              | `trip:read`     | Trip detail.                             |
+| POST   | `/api/trip/[id]/transition`   | `trip:update`   | Advance trip status.                     |
+| POST   | `/api/trip/[id]/location`     | `trip:track`    | Push a live location ping (Pusher).      |
+| GET/POST | `/api/saved-place` · `/[id]`| `savedPlace:*`  | Saved-place CRUD.                        |
+| POST   | `/api/message`               | `message:create`| Per-trip chat message.                   |
+| GET    | `/api/history`               | `trip:read`     | Completed trips (as driver or passenger).|
+| POST   | `/api/pusher/auth`           | signed-in       | Pusher private-channel auth.             |
+
+### Slice C — payments & wallet
+
+| Method | Path                              | Resource:Action  | Description                          |
+| ------ | --------------------------------- | ---------------- | ------------------------------------ |
+| POST   | `/api/payment`                    | `payment:create` | Pay for a trip (wallet/card/upi/cash).|
+| GET    | `/api/wallet` · `/wallet/balance` | `wallet:read`    | Wallet ledger · current balance.     |
+| POST   | `/api/wallet/recharge`            | `wallet:recharge`| Start a Stripe recharge intent.      |
+| POST   | `/api/stripe/webhook`             | — (Stripe sig)   | Payment/recharge webhook.            |
+| GET    | `/api/report` · `/report/receipt/[tripId]` | `report:read` / `trip:read` | Metrics · PDF receipt. |
+
+### Slice D — tenancy & admin
+
+| Method | Path                                   | Resource:Action     | Description                     |
+| ------ | -------------------------------------- | ------------------- | ------------------------------- |
+| GET/POST | `/api/organization` · `/[id]`        | `organization:*`    | Org CRUD (super-admin).         |
+| GET/POST | `/api/invitation` · `/[id]` · `/accept`| `invitation:*`    | Invite lifecycle + acceptance.  |
+| GET/PATCH | `/api/user` · `/[id]`                | `user:*`            | User management (company-admin).|
+| GET/PATCH | `/api/vehicle/admin` · `/[id]`       | `vehicle:approve`   | Admin vehicle approval queue.   |
+
+### Cross-cutting
+
+| Method | Path                        | Resource:Action | Description                                   |
+| ------ | --------------------------- | --------------- | --------------------------------------------- |
+| GET    | `/api/activity-log`         | `activityLog:read` | Audit trail.                               |
+| GET    | `/api/notifications/stats`  | signed-in       | Unread notification count.                    |
+| POST   | `/api/auth/register`        | — (public)      | Credentials sign-up.                          |
+| *      | `/api/auth/[...nextauth]`   | — (Auth.js)     | Sign-in, callbacks, session, OAuth.           |
+| *      | `/api/uploadthing`          | signed-in       | UploadThing file router (auth-gated).         |
 
 | Method | Path                       | Resource:Action    | Description        |
 | ------ | -------------------------- | ------------------ | ------------------ |

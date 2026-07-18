@@ -121,7 +121,7 @@ for password storage.
 means shipping/booting a browser binary — heavy and unreliable on Vercel serverless.
 
 **Decision:** Generate PDFs with **`@react-pdf/renderer`** — pure JS, React components, on the Node
-runtime. Pipeline in `lib/pdf/` with the `demo-entity/[id]/invoice` route as the reference.
+runtime. Pipeline in `lib/pdf/` with the `report/receipt/[tripId]` route as the reference.
 
 **Consequences:** Vercel-safe, no browser binary; PDFs authored as components against real data.
 Cost: `@react-pdf`'s layout model (flex subset), not full HTML/CSS. PDF routes must set

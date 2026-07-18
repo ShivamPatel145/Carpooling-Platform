@@ -7,11 +7,16 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 .
 ├── app/                          # Next.js App Router — routes, layouts, API
 │   ├── (auth)/                   #   route group: login, register, auth actions (own layout)
-│   ├── (dashboard)/              #   route group: signed-in app (dashboard, demo, admin/*)
-│   │   └── admin/                #     admin-only pages (users, settings) behind requireRolePage
+│   ├── (dashboard)/              #   route group: signed-in app (dashboard, app/*, admin/*, platform/*)
+│   │   ├── app/                  #     employee mode-switcher: find/offer/rides/vehicles/trips/wallet
+│   │   ├── admin/                #     company-admin pages (users, settings, vehicles)
+│   │   └── platform/             #     super-admin console (organizations)
 │   ├── api/                      #   REST route handlers (see docs/api.md)
 │   │   ├── auth/                 #     Auth.js handler + credentials register
-│   │   ├── demo-entity/          #     reference CRUD resource (route/[id]/my/stats/invoice)
+│   │   ├── vehicle/ ride/ booking/  # Slice A ride engine (reference CRUD shape)
+│   │   ├── trip/ saved-place/ message/  # Slice B trips, tracking, chat
+│   │   ├── payment/ wallet/ report/     # Slice C payments, wallet, reports
+│   │   ├── organization/ invitation/ user/  # Slice D tenancy & admin
 │   │   ├── activity-log/         #     audit-trail read endpoint (admin/manager)
 │   │   ├── notifications/        #     notifications stats (unread count)
 │   │   └── uploadthing/          #     UploadThing file router
@@ -33,15 +38,18 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 │                                 #     coming-soon (used everywhere; not tied to one group)
 │
 ├── features/                     # Vertical feature slices — one folder per entity
-│   ├── _demo/                    #   REFERENCE slice — copy this for a real entity
+│   ├── vehicle/                  #   REFERENCE slice — org-scoped CRUD; copy this for a new entity
 │   │   ├── schema.ts             #     ONE Zod schema, re-exported from the db table
 │   │   ├── hooks.ts              #     TanStack Query hooks
 │   │   ├── columns.tsx           #     DataTable column defs
 │   │   ├── form.tsx              #     create/edit form
 │   │   ├── index.ts              #     barrel
-│   │   └── components/           #     list / detail / create-dialog / row-actions
+│   │   └── components/           #     list / create-dialog / row-actions
+│   ├── ride/                     #   Slice A — offer/find/book engine (+ RouteMap, location field)
+│   ├── trip/ chat/ saved-place/  #   Slice B — trips, tracking, chat, saved places
+│   ├── payment/ wallet/ report/  #   Slice C — payments, wallet, reports
+│   ├── organization/ invitation/ user/  # Slice D — tenancy & admin
 │   └── activity-log/             #   read-only audit-trail slice (viewer over the generic table)
-│       └── components/           #     activity-view (DataTable applied to a 2nd entity)
 │
 ├── db/                           # Database layer (Drizzle + Neon)
 │   ├── schema/                   #   one file per table + barrel index.ts (see docs/database.md)
@@ -106,9 +114,9 @@ Annotated tree of the repo. Import alias `@/*` → repo root (e.g. `@/lib/...`, 
 
 | I'm building…                     | Put it in…                                                   |
 | --------------------------------- | ----------------------------------------------------------- |
-| A new entity's screens            | `features/<entity>/` (copy `features/_demo/`)               |
+| A new entity's screens            | `features/<entity>/` (copy `features/vehicle/`)             |
 | A new entity's table              | `db/schema/<entity>.ts` (+ barrel line via integrator)      |
-| A new entity's API                | `app/api/<entity>/` (copy the demo-entity shape)            |
+| A new entity's API                | `app/api/<entity>/` (copy the `vehicle` route shape)        |
 | A new page/route                  | `app/(dashboard)/…` (or a new route group)                  |
 | Shared UI primitive               | `components/ui/` (prefer shadcn) or `components/<group>/`   |
 | Cross-cutting logic               | `lib/…` (route through an existing utility — don't duplicate)|
