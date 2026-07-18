@@ -11,12 +11,19 @@ export interface ReportData {
     netProfit: number;
     revenue: number;
     maintenanceMonthly: number;
+    costPerKm: number;
   };
   monthlySummary: {
     month: string;
     revenue: number;
     fuel: number;
     net: number;
+  }[];
+  vehicleWise: {
+    model: string;
+    trips: number;
+    distanceKm: number;
+    fuelCost: number;
   }[];
 }
 

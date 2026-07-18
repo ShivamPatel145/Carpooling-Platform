@@ -165,6 +165,35 @@ export function ReportDashboard() {
           </ul>
         </div>
       </div>
+
+      {/* Vehicle-wise cost (PRD reports: per-vehicle distance + fuel) */}
+      {data.vehicleWise.length > 0 && (
+        <div className="mt-5 rounded-2xl border border-[color:var(--line)] bg-[color:var(--surface)] p-6">
+          <CoEyebrow>Vehicle-wise cost</CoEyebrow>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[color:var(--line)]">
+                  <th className="pb-2 text-[12px] font-medium uppercase tracking-wide text-[color:var(--ink-3)]">Vehicle</th>
+                  <th className="pb-2 text-right text-[12px] font-medium uppercase tracking-wide text-[color:var(--ink-3)]">Trips</th>
+                  <th className="pb-2 text-right text-[12px] font-medium uppercase tracking-wide text-[color:var(--ink-3)]">Distance</th>
+                  <th className="pb-2 text-right text-[12px] font-medium uppercase tracking-wide text-[color:var(--ink-3)]">Fuel cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.vehicleWise.map((v) => (
+                  <tr key={v.model} className="border-b border-[color:var(--line)] last:border-b-0">
+                    <td className="py-2.5 text-[14px] font-medium text-[color:var(--ink)]">{v.model}</td>
+                    <td className="py-2.5 text-right font-mono text-[13px] tabular-nums text-[color:var(--ink-2)]">{v.trips}</td>
+                    <td className="py-2.5 text-right font-mono text-[13px] tabular-nums text-[color:var(--ink-2)]">{v.distanceKm} km</td>
+                    <td className="py-2.5 text-right font-mono text-[13px] font-semibold tabular-nums text-[color:var(--ink)]">₹{inr(v.fuelCost)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
