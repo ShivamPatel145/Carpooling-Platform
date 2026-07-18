@@ -17,7 +17,7 @@ const LINKS = [
   { title: "Wallet", href: "/wallet", icon: CreditCard, desc: "Balance, recharge and transactions" },
   { title: "Ride History", href: "/history", icon: History, desc: "Your completed, paid trips" },
   { title: "Help & Support", href: "/support", icon: LifeBuoy, desc: "Raise a ticket or get help" },
-  { title: "Profile", href: "/settings/profile", icon: SettingsIcon, desc: "Identity and preferences" },
+  { title: "Settings", href: "/settings/profile", icon: SettingsIcon, desc: "Identity and preferences" },
 ];
 
 export default async function SettingsPage() {
