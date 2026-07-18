@@ -9,6 +9,10 @@ import {
   LifeBuoy,
   BarChart3,
   Building2,
+  Search,
+  PlusCircle,
+  Route,
+  Car,
 } from "lucide-react";
 import type { Role } from "@/lib/permissions";
 import { roleHierarchy } from "@/lib/permissions";
@@ -55,8 +59,11 @@ export const navConfig: NavItem[] = [
   { title: "Activity Log", href: "/admin/activity", icon: ScrollText, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },
   { title: "Settings", href: "/admin/settings", icon: Settings, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },
 
-  // BUILD-DAY: domain entities go here, e.g.
-  // { title: "Find a Ride", href: "/app/find", icon: Search, minRole: "employee", roles: ["employee"], group: "Rides" },
+  // ── Rides (Slice A — employee mode-switcher) ────────────────────────────────────────────
+  { title: "Find a Ride", href: "/app/find", icon: Search, minRole: "employee", roles: ["employee"], group: "Rides" },
+  { title: "Offer a Ride", href: "/app/offer", icon: PlusCircle, minRole: "employee", roles: ["employee"], group: "Rides" },
+  { title: "My Rides", href: "/app/rides", icon: Route, minRole: "employee", roles: ["employee"], group: "Rides" },
+  { title: "My Vehicles", href: "/app/vehicles", icon: Car, minRole: "employee", roles: ["employee"], group: "Rides" },
 ];
 
 /** Filter the nav for a given role. `roles` allowlist wins when present; else fall back to minRole tier. */
