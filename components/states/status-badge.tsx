@@ -25,15 +25,21 @@ const STATUS_VARIANTS: Record<string, BadgeProps["variant"]> = {
   pending: "warning",
   approved: "success",
   rejected: "destructive",
-  // carpooling — vehicle approval
+  // carpooling — vehicle approval (Slice A)
   inactive: "secondary",
-  // carpooling — ride lifecycle (ride.status)
+  // carpooling — ride lifecycle (ride.status, Slice A)
   published: "success",
   full: "secondary",
   cancelled: "destructive",
-  completed: "outline",
-  // carpooling — booking lifecycle (booking.status): pending/cancelled/completed shared above
+  completed: "success",
+  // carpooling — booking lifecycle (booking.status, Slice A): pending/cancelled/completed shared above
   confirmed: "success",
+  // trips — Slice B lifecycle (booked → started → in_progress → completed → payment_pending → payment_completed)
+  booked: "secondary",
+  started: "accent",
+  // in_progress already mapped above
+  payment_pending: "warning",
+  payment_completed: "success",
   // BUILD-DAY: domain statuses map here.
 };
 

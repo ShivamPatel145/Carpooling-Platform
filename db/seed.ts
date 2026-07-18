@@ -1,8 +1,11 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+// ── Neon serverless driver (disabled — using local Postgres for dev) ──────────────────────────
+// import { neon } from "@neondatabase/serverless";
+// import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import { randomBytes, scryptSync } from "crypto";
 import * as schema from "./schema";
@@ -40,7 +43,9 @@ function hashPassword(password: string): string {
 }
 
 const DEMO_PASSWORD = "Password123!";
-const db = drizzle(neon(process.env.DATABASE_URL!), { schema, casing: "snake_case" });
+// const db = drizzle(neon(process.env.DATABASE_URL!), { schema, casing: "snake_case" });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const db = drizzle(pool, { schema, casing: "snake_case" });
 
 type SeededUser = { id: string; email: string };
 
