@@ -6,10 +6,11 @@
  *   hooks.ts    → TanStack Query hooks + mutations (invalidate on success, toast)
  *   columns.tsx → DataTable column defs
  *   form.tsx    → RHF + zodResolver on the shared schema
- *   components/ → list, create dialog, row actions
+ *   components/ → list, create dialog, row actions, admin approval table
  */
 export { VehicleList } from "./components/vehicle-list";
 export { CreateVehicleDialog } from "./components/create-dialog";
+export { VehicleAdminTable, type VehicleAdminRow } from "./components/admin-table";
 export { VehicleForm } from "./form";
 export { vehicleColumns } from "./columns";
 export * from "./hooks";

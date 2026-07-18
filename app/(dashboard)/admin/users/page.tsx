@@ -7,8 +7,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/data-table";
-import { userColumns } from "@/features/admin-users/user-columns";
-import { InviteEmployeeDialog } from "@/features/admin-users/invite-employee-dialog";
+import { userColumns, InviteEmployeeDialog } from "@/features/user";
 
 export const metadata: Metadata = { title: "Users" };
 

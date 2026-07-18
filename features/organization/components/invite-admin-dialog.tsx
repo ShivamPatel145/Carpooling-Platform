@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { TextField } from "@/components/form";
 import { inviteFormSchema, type InviteFormValues } from "@/db/schema/invitation";
-import type { OrgRow } from "./org-columns";
+import type { OrgRow } from "../columns";
 
 interface InviteAdminDialogProps {
   org: OrgRow | null;

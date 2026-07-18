@@ -6,7 +6,7 @@ import { requireRolePage } from "@/lib/session";
 import { db } from "@/db";
 import { organization } from "@/db/schema";
 import { PageHeader } from "@/components/page-header";
-import { OrgSettingsForm } from "@/features/organization/org-settings-form";
+import { OrgSettingsForm } from "@/features/organization";
 
 export const metadata: Metadata = { title: "Settings" };
 
