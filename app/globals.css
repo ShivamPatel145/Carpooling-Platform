@@ -32,9 +32,9 @@
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 40%; /* AA on white: 4.76:1 */
 
-    /* ▼▼▼ THE ONE DOMAIN TOKEN — placeholder: slate-700. Swap on build day. ▼▼▼ */
-    --accent: 175 77% 26%; /* teal-700 #0f766e — carpooling; 5.55:1 on white and under white text */
-    --accent-foreground: 0 0% 100%;
+    /* ▼▼▼ THE ONE DOMAIN TOKEN — Dusk Route signal amber (amber-500). Base palette lands via Claude Design. ▼▼▼ */
+    --accent: 38 90% 55%; /* amber-500 #F4A726 — signal accent. On-accent text is ink (below). */
+    --accent-foreground: 38 84% 7%; /* ink #231703 — 8.70:1 on the amber fill */
     /* ▲▲▲ ------------------------------------------------------------------ ▲▲▲ */
 
     --destructive: 0 72% 51%; /* red-600 */
@@ -48,7 +48,7 @@
 
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 175 77% 26%; /* focus ring tracks the accent (teal-700) */
+    --ring: 38 90% 55%; /* focus ring tracks the accent (amber-500) */
 
     --radius: 0.5rem;
   }
@@ -73,8 +73,8 @@
     --muted-foreground: 0 0% 63.9%; /* AA on near-black: 7.7:1 */
 
     /* ▼▼▼ THE ONE DOMAIN TOKEN (dark) — lightened placeholder for contrast on dark. ▼▼▼ */
-    --accent: 172 66% 50%; /* teal-400 #2dd4bf — carpooling accent on dark; 10.61:1 on near-black */
-    --accent-foreground: 0 0% 9%;
+    --accent: 38 90% 55%; /* amber-500 #F4A726 — same signal amber in dark; 8.35:1 on charcoal ink */
+    --accent-foreground: 38 84% 7%; /* ink #231703 — reads on the amber fill */
     /* ▲▲▲ ------------------------------------------------------------------------- ▲▲▲ */
 
     --destructive: 0 72% 51%;
@@ -88,7 +88,7 @@
 
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 172 66% 50%;
+    --ring: 38 90% 55%;
   }
 }
 
