@@ -6,7 +6,11 @@ import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+<<<<<<<<< Temporary merge branch 1
+import { Loader2, Eye, EyeOff } from "lucide-react";
+=========
 import { Loader2, Eye, EyeOff, ChevronDown, Zap } from "lucide-react";
+>>>>>>>>> Temporary merge branch 2
 import { ThemeToggle } from "@/components/theme-toggle";
 import { coAmberBtn } from "@/components/co/ui";
 import { cn } from "@/lib/utils";
@@ -30,6 +34,7 @@ const DEMO_ACCOUNTS: Array<{ label: string; email: string; role: string }> = [
   { label: "Employee · driver", email: "employee@demo.dev", role: "Acme · offers rides" },
   { label: "Employee · passenger", email: "rider@demo.dev", role: "Acme · finds rides" },
 ];
+
 /** Role is decided server-side from the account (looked up by email), so there's no role picker here. */
 function homeFor(role: string | undefined): string {
   if (role === "super_admin") return "/platform";
@@ -63,7 +68,6 @@ export function LoginForm() {
 
     // The account's role (keyed by email) is the source of truth — route to its console.
     const session = await getSession();
-
     router.push(callbackUrl || homeFor(session?.user?.role));
     router.refresh();
     return true;
@@ -142,7 +146,6 @@ export function LoginForm() {
             >
               {showPw ? <Eye className="h-[17px] w-[17px]" strokeWidth={1.5} /> : <EyeOff className="h-[17px] w-[17px]" strokeWidth={1.5} />}
             </button>
-
           </div>
         </label>
         {errors.password && (
@@ -219,6 +222,7 @@ export function LoginForm() {
           </div>
         )}
       </div>
+
       <p className="mt-[22px] text-center text-[13.5px] text-[color:var(--ink-3)]">
         Accounts are created by your company. Ask your admin if you don&apos;t have access yet.
       </p>
