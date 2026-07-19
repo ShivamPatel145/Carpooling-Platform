@@ -183,6 +183,7 @@ async function buildViews(
       farePerSeat: r.farePerSeat,
       fareAmount: myBooking?.fareAmount ?? null,
       seatsBooked: myBooking?.seatsBooked ?? null,
+      bookingId: myBooking?.id ?? null,
       distanceKm: r.distanceKm,
       durationMin: r.durationMin,
       etaMin: t.etaMin,

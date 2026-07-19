@@ -48,12 +48,11 @@ export const TRIP_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
   payment_completed: [],
 };
 
-/** Transitions the DRIVER initiates. payment_completed is passenger/payment-initiated (Slice C). */
+/** Transitions the DRIVER initiates. payment_completed is passenger-initiated via /api/payment. */
 export const DRIVER_TRANSITIONS: readonly TripStatus[] = [
   "started",
   "in_progress",
   "completed",
-  "payment_pending",
 ] as const;
 
 export interface TripParticipant {
@@ -81,6 +80,8 @@ export interface TripView {
   /** the caller's own booking (passenger view) */
   fareAmount: string | null;
   seatsBooked: number | null;
+  /** the caller's own booking ID (passenger view), needed for payment */
+  bookingId: string | null;
   distanceKm: string | null;
   durationMin: number | null;
   etaMin: number | null;
