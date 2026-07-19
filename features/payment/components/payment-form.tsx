@@ -9,67 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { SelectField } from "@/components/form";
 import { paymentFormSchema, type PaymentFormValues } from "@/features/payment/schema";
-import { useCreatePayment, useConfirmPayment } from "@/features/payment/hooks";
+import { useCreatePayment } from "@/features/payment/hooks";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-function CheckoutForm({ paymentId, onSuccess }: { paymentId: string; onSuccess: () => void; }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const confirmPayment = useConfirmPayment();
-  const [isProcessing, setIsProcessing] = React.useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setIsProcessing(true);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${window.location.origin}/history` },
-      redirect: "if_required",
-    });
-
-    if (error) {
-      setIsProcessing(false);
-      toast({ variant: "destructive", title: "Payment failed", description: error.message });
-      return;
-    }
-
-    // Stripe took the money in-browser. Settle server-side (credit the driver + complete the trip)
-    // without waiting on the webhook, which can't reach a dev server.
-    try {
-      await confirmPayment.mutateAsync(paymentId);
-    } catch (err) {
-      setIsProcessing(false);
-      toast({
-        variant: "destructive",
-        title: "Payment taken, but settling failed",
-        description: err instanceof Error ? err.message : "Check your history in a moment.",
-      });
-      return;
-    }
-
-    setIsProcessing(false);
-    toast({ variant: "success", title: "Payment successful", description: "The driver has been paid." });
-    onSuccess();
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isProcessing || !stripe || !elements}>
-          {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Confirm Payment
-        </Button>
-      </div>
-    </form>
-  );
-}
 
 /**
  * QR checkout — a direct UPI transfer to the driver. We render a UPI intent QR (payee VPA + amount);
@@ -132,6 +75,11 @@ function QrCheckout({
   );
 }
 
+/**
+ * Post-ride settlement. QR (scan a UPI code) and Cash both settle off-platform; Wallet spends the
+ * passenger's in-app balance. All three complete the trip server-side with no redirect — the
+ * passenger never leaves the page.
+ */
 export function PaymentForm({
   bookingId,
   fareAmount,
@@ -145,13 +93,12 @@ export function PaymentForm({
 }) {
   const router = useRouter();
   const createPayment = useCreatePayment();
-  const [checkout, setCheckout] = React.useState<{ clientSecret: string; paymentId: string } | null>(null);
   const [showQr, setShowQr] = React.useState(false);
   const qc = useQueryClient();
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
-    defaultValues: { bookingId, method: "wallet" },
+    defaultValues: { bookingId, method: "qr" },
   });
 
   function finish() {
@@ -165,13 +112,14 @@ export function PaymentForm({
       setShowQr(true);
       return;
     }
-    const res = await createPayment.mutateAsync(values);
-    if (res?.clientSecret) {
-      setCheckout({ clientSecret: res.clientSecret, paymentId: res.payment.id });
-    } else {
-      toast({ variant: "success", title: "Payment complete", description: "Your trip is paid for." });
-      finish();
+    // Wallet + cash settle server-side immediately (no redirect).
+    try {
+      await createPayment.mutateAsync(values);
+    } catch {
+      return; // the hook surfaces the error toast (e.g. insufficient wallet balance)
     }
+    toast({ variant: "success", title: "Payment complete", description: "Your trip is paid for." });
+    finish();
   }
 
   if (showQr) {
@@ -187,14 +135,6 @@ export function PaymentForm({
     );
   }
 
-  if (checkout) {
-    return (
-      <Elements stripe={stripePromise} options={{ clientSecret: checkout.clientSecret, appearance: { theme: 'stripe' } }}>
-        <CheckoutForm paymentId={checkout.paymentId} onSuccess={finish} />
-      </Elements>
-    );
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -207,8 +147,6 @@ export function PaymentForm({
             { label: "Scan QR Code (UPI)", value: "qr" },
             { label: "Cash", value: "cash" },
             { label: "Wallet Balance", value: "wallet" },
-            { label: "Card (Stripe)", value: "card" },
-            { label: "UPI (online)", value: "upi" },
           ]}
         />
         <div className="flex justify-end gap-2 pt-4">
