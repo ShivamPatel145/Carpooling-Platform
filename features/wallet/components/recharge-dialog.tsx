@@ -4,65 +4,21 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, CreditCard } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { TextField, SelectField } from "@/components/form";
 import { rechargeFormSchema, type RechargeFormValues } from "@/features/wallet/schema";
 import { useRechargeWallet } from "@/features/wallet/hooks";
-import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-function CheckoutForm({
-  clientSecret,
-  onSuccess,
-}: {
-  clientSecret: string;
-  onSuccess: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [isProcessing, setIsProcessing] = React.useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setIsProcessing(true);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/wallet`, // or wherever
-      },
-      redirect: "if_required", // We don't want to redirect if possible
-    });
-
-    setIsProcessing(false);
-
-    if (error) {
-      toast({ variant: "destructive", title: "Payment failed", description: error.message });
-    } else {
-      toast({ variant: "success", title: "Payment successful", description: "Your wallet has been recharged." });
-      onSuccess();
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isProcessing || !stripe || !elements}>
-          {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Confirm Payment
-        </Button>
-      </div>
-    </form>
-  );
-}
+// The `@stripe/*` React tree is loaded lazily (client-only), reached only after a clientSecret
+// exists, so /wallet no longer eagerly compiles/bundles Stripe on first visit.
+const StripeCheckout = dynamic(
+  () => import("./stripe-checkout").then((m) => m.StripeCheckout),
+  { ssr: false, loading: () => <Loader2 className="mx-auto h-5 w-5 animate-spin" /> },
+);
 
 export function RechargeDialog() {
   const [open, setOpen] = React.useState(false);
@@ -126,9 +82,7 @@ export function RechargeDialog() {
             </form>
           </Form>
         ) : (
-          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-            <CheckoutForm clientSecret={clientSecret} onSuccess={handleSuccess} />
-          </Elements>
+          <StripeCheckout clientSecret={clientSecret} onSuccess={handleSuccess} />
         )}
       </DialogContent>
     </Dialog>

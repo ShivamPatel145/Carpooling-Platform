@@ -32,7 +32,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SessionProvider>
+    <SessionProvider
+      // Don't poll or refetch the session on every window focus / tab switch. The session is a JWT
+      // (auth.config.ts) and role/tenancy only change via an explicit signOut+signIn, so the client
+      // has no reason to keep re-hitting /api/auth/session — which, on a miss, does a Neon round-trip
+      // in the jwt callback (auth.ts). This collapses the burst of GET /api/auth/session calls.
+      refetchOnWindowFocus={false}
+      refetchInterval={0}
+    >
       <QueryClientProvider client={queryClient}>
         <ThemeProvider
           attribute="class"

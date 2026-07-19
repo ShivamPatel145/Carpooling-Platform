@@ -8,6 +8,28 @@ const nextConfig: NextConfig = {
   // The double-invoke is dev-only (it never runs in a production build), so this only affects the
   // dev experience; there is no clean per-component workaround in v4 (fixed upstream in v5/React 19).
   reactStrictMode: false,
+  // Barrel-import optimizer. Without this, dev compile pulls each package's ENTIRE barrel module
+  // graph into every one of the ~77 files that import from it (lucide-react alone is ~1,500 icon
+  // modules) — the dominant "Compiling…" cost per route. Next rewrites `import { X } from "pkg"`
+  // to the direct submodule path so only the used icons/components compile.
+  experimental: {
+    // Turbopack (`pnpm dev:turbo`) equivalent of the webpack `pg: false` client alias below:
+    // keep node-postgres out of the browser bundle. Webpack dev (`pnpm dev`) still uses the
+    // webpack() fn; only ONE compiler runs at a time, so the two configs never conflict.
+    turbo: {
+      resolveAlias: { pg: { browser: "./lib/empty-module.ts" } },
+    },
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-select",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-tooltip",
+    ],
+  },
   // @react-pdf/renderer is external (pure JS, Vercel-safe). It ships its OWN React reconciler, and
   // the trap is a dual-React-instance mismatch ("React error #31") — react-pdf (external) resolves
   // React from node_modules while Next bundles a second copy for the route. We render the PDF in an

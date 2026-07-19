@@ -64,6 +64,28 @@ function vehicleIcon() {
 const originIcon = () => pinIcon("#0f766e", "Pickup"); // teal-ish start (not the brand accent)
 const destIcon = () => pinIcon("#dc2626", "Destination"); // red end
 
+/**
+ * Re-measure the tile grid once layout settles. Leaflet sizes its tiles against the container at
+ * mount; inside a card/flex/animated shell that size is briefly wrong and tiles never fill (the
+ * grey-gap bug). Re-invalidate next frame, on a couple of short delays, and on any container resize.
+ */
+function InvalidateSize() {
+  const map = useMap();
+  React.useEffect(() => {
+    const invalidate = () => map.invalidateSize({ animate: false });
+    const raf = requestAnimationFrame(invalidate);
+    const timers = [80, 250, 600].map((ms) => window.setTimeout(invalidate, ms));
+    const ro = new ResizeObserver(invalidate);
+    ro.observe(map.getContainer());
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach((t) => window.clearTimeout(t));
+      ro.disconnect();
+    };
+  }, [map]);
+  return null;
+}
+
 /** Imperatively fit the map to all relevant points whenever they change. */
 function FitBounds({ points }: { points: (LatLngPoint | null)[] }) {
   const map = useMap();
@@ -176,6 +198,7 @@ export default function RouteMapImpl({
           </Marker>
         )}
 
+        <InvalidateSize />
         <FitBounds points={[origin, destination, vehiclePosition ?? null]} />
       </MapContainer>
 

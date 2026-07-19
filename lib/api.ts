@@ -39,8 +39,15 @@ export function withErrorHandler<Ctx = unknown>(handler: Handler<Ctx>): Handler<
         return errorResponse(err);
       }
       logger.error("Unhandled API error", { err, path: safePath(req) });
+      // In dev, surface the real error message + code to the client so the failing cause is visible
+      // instead of the opaque "Something went wrong." Production still returns the generic envelope.
+      const isDev = process.env.NODE_ENV !== "production";
+      const detail =
+        isDev && err instanceof Error
+          ? { message: err.message, issues: { name: err.name, code: (err as { code?: string }).code } }
+          : { message: "Something went wrong." };
       return NextResponse.json(
-        { error: { code: "INTERNAL", message: "Something went wrong." } } satisfies ApiErrorBody,
+        { error: { code: "INTERNAL", ...detail } } satisfies ApiErrorBody,
         { status: 500 },
       );
     }
