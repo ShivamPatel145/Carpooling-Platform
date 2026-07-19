@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { coAmberBtn } from "@/components/co/ui";
 import { toast } from "@/hooks/use-toast";
@@ -30,25 +31,43 @@ function InnerForm({
 }) {
   const stripe = useStripe();
   const elements = useElements();
+  const qc = useQueryClient();
   const [busy, setBusy] = React.useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!stripe || !elements) return;
     setBusy(true);
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: `${window.location.origin}/wallet` },
       redirect: "if_required",
     });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       toast({ variant: "destructive", title: "Payment failed", description: error.message });
-    } else {
-      toast({ variant: "success", title: "Wallet recharged", description: "Your balance is updated." });
+    } else if (paymentIntent?.status === "succeeded") {
+      // Immediately credit the wallet server-side (don't wait for the webhook)
+      try {
+        await fetch("/api/wallet/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+        });
+      } catch (_) {
+        // Non-fatal: webhook will still credit if this fails
+      }
+      // Immediately invalidate React Query cache so balance + history refresh NOW
+      await qc.invalidateQueries({ queryKey: ["wallet"] });
+      setBusy(false);
+      toast({ variant: "success", title: "Wallet recharged!", description: "Your balance has been updated." });
       onSuccess();
+    } else {
+      setBusy(false);
+      toast({ variant: "destructive", title: "Payment incomplete", description: "Please try again." });
     }
   }
+
 
   if (variant === "amber") {
     return (

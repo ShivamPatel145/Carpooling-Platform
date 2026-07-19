@@ -60,7 +60,9 @@ export function WalletRecharge() {
   function done() {
     setClientSecret(null);
     qc.invalidateQueries({ queryKey: ["wallet"] });
+    router.refresh();
   }
+
 
   const nativeUpiLink = `upi://pay?pa=coride@upi&pn=Coride&am=${amount}&cu=INR`;
 

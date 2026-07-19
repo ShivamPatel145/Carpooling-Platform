@@ -33,7 +33,10 @@ export async function POST(req: Request) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const metadata = paymentIntent.metadata;
 
+    console.log("[webhook] event:", event.type, "| metadata:", JSON.stringify(metadata));
+
     if (!metadata || !metadata.action) {
+      console.log("[webhook] No action in metadata, skipping.");
       return NextResponse.json({ received: true });
     }
 
@@ -41,6 +44,19 @@ export async function POST(req: Request) {
       const { userId, orgId } = metadata;
       if (event.type === "payment_intent.succeeded" && userId && orgId) {
         const amount = Number(metadata.amount ?? 0);
+
+        console.log(`[webhook] wallet_recharge for user ${userId}, amount ${amount}`);
+
+        // Check if already processed (idempotency) — reason stores the Stripe PI id
+        const existing = await db.select({ id: walletEntry.id })
+          .from(walletEntry)
+          .where(eq(walletEntry.reason, `recharge:${paymentIntent.id}`))
+          .limit(1);
+
+        if (existing.length > 0) {
+          console.log("[webhook] Already processed, skipping.");
+          return NextResponse.json({ received: true });
+        }
 
         // Find latest balance
         const [latest] = await db.select({ balanceAfter: walletEntry.balanceAfter })
@@ -56,9 +72,11 @@ export async function POST(req: Request) {
           orgId,
           userId,
           delta: amount.toString(),
-          reason: "recharge",
+          reason: `recharge:${paymentIntent.id}`,
           balanceAfter: newBalance.toString(),
         });
+
+        console.log(`[webhook] Wallet updated: ${currentBalance} -> ${newBalance}`);
       }
     } else if (metadata.action === "ride_payment") {
       const status = event.type === "payment_intent.succeeded" ? "succeeded" : "failed";
@@ -104,4 +122,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ received: true });
 }
-
