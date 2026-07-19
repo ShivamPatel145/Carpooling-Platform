@@ -6,11 +6,7 @@ import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-<<<<<<<<< Temporary merge branch 1
-import { Loader2, Eye, EyeOff } from "lucide-react";
-=========
 import { Loader2, Eye, EyeOff, ChevronDown, Zap } from "lucide-react";
->>>>>>>>> Temporary merge branch 2
 import { ThemeToggle } from "@/components/theme-toggle";
 import { coAmberBtn } from "@/components/co/ui";
 import { cn } from "@/lib/utils";
