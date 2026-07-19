@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { payment, walletEntry } from "@/db/schema";
+import { payment, walletEntry, booking, ride } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -57,7 +57,6 @@ export async function POST(req: Request) {
           userId,
           delta: amount.toString(),
           reason: "recharge",
-          refId: paymentIntent.id,
           balanceAfter: newBalance.toString(),
         });
       }
@@ -66,6 +65,40 @@ export async function POST(req: Request) {
       await db.update(payment)
         .set({ status })
         .where(eq(payment.stripePaymentIntentId, paymentIntent.id));
+
+      if (status === "succeeded" && metadata.paymentId) {
+        // Find the payment, booking, and ride to get the driverId
+        const [p] = await db.select().from(payment).where(eq(payment.id, metadata.paymentId));
+        if (p) {
+          const [b] = await db.select().from(booking).where(eq(booking.id, p.bookingId));
+          if (b) {
+            const [r] = await db.select().from(ride).where(eq(ride.id, b.rideId));
+            if (r) {
+              const amount = Number(p.amount);
+              
+              // Find latest balance for the driver
+              const [latestDriver] = await db.select({ balanceAfter: walletEntry.balanceAfter })
+                .from(walletEntry)
+                .where(eq(walletEntry.userId, r.driverId))
+                .orderBy(desc(walletEntry.createdAt))
+                .limit(1);
+
+              const currentDriverBalance = latestDriver ? Number(latestDriver.balanceAfter) : 0;
+              const newDriverBalance = currentDriverBalance + amount;
+
+              // Credit the driver's wallet
+              await db.insert(walletEntry).values({
+                orgId: p.orgId,
+                userId: r.driverId,
+                delta: amount.toString(),
+                reason: "ride_payment",
+                refId: p.id,
+                balanceAfter: newDriverBalance.toString(),
+              });
+            }
+          }
+        }
+      }
     }
   }
 

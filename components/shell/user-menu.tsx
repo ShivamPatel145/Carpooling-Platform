@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, Settings as SettingsIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,8 +50,8 @@ export function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
-            <UserIcon className="h-4 w-4" />
-            Profile
+            <SettingsIcon className="h-4 w-4" />
+            Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

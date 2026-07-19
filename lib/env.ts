@@ -19,7 +19,8 @@ const envSchema = z.object({
   DB_DRIVER: z.enum(["postgres", "neon"]).default("postgres"),
 
   // ── Optional integrations (feature degrades if absent) ───────────────────────────────────
-  RESEND_API_KEY: z.string().optional(),
+  EMAIL_USER: z.string().optional(),
+  EMAIL_PASS: z.string().optional(),
   UPLOADTHING_TOKEN: z.string().optional(),
 
   // ── Optional: Pusher realtime (live tracking + chat; degrades to polling if absent) ─────────
@@ -53,7 +54,7 @@ export const env = loadEnv();
 
 /** Feature flags derived from which optional integrations are configured. */
 export const features = {
-  email: Boolean(env.RESEND_API_KEY),
+  email: Boolean(env.EMAIL_USER && env.EMAIL_PASS),
   uploads: Boolean(env.UPLOADTHING_TOKEN),
   realtime: Boolean(
     env.PUSHER_APP_ID && env.PUSHER_KEY && env.PUSHER_SECRET && env.PUSHER_CLUSTER,

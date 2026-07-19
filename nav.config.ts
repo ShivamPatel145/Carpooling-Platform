@@ -14,7 +14,7 @@ import {
   Car,
   Wallet,
   History,
-  UserCircle,
+  MapPin,
 } from "lucide-react";
 import type { Role } from "@/lib/permissions";
 
@@ -54,29 +54,31 @@ export const navConfig: NavItem[] = [
   // ── Super admin (platform console — its own world) ──────────────────────────────────────
   { title: "Platform", href: "/platform", icon: Building2, minRole: "super_admin", roles: ["super_admin"], group: "Platform" },
 
-  // ── Employee app (mode-switcher). roles:["employee"] keeps these out of admin sidebars. ──
-  { title: "Dashboard", href: "/app", icon: LayoutDashboard, minRole: "employee", roles: ["employee"], group: "Overview" },
-  // Employees reach notifications from the topbar bell (a dropdown), not a sidebar page — company
-  // admins keep the full-page feed in their console.
-  { title: "Notifications", href: "/notifications", icon: Bell, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
-  { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee", "company_admin"], group: "Work" },
+  // ── Employee app (mode-switcher) — a FLAT list mirroring the Coride comp sidebar (no group
+  //    headers). roles:["employee"] keeps these out of the admin sidebars. Order follows the comp
+  //    (Dashboard → Find → Offer → My Trips → Live Tracking → Wallet → Ride History → Settings);
+  //    My Vehicles + Support are the two extras layered onto the comp's eight items. "My Trips" is
+  //    /app/trips; the card view at /app/rides stays reachable from the dashboard + Quick Access.
+  { title: "Dashboard", href: "/app", icon: LayoutDashboard, minRole: "employee", roles: ["employee"] },
+  { title: "Find a Ride", href: "/app/find", icon: Search, minRole: "employee", roles: ["employee"] },
+  { title: "Offer a Ride", href: "/app/offer", icon: PlusCircle, minRole: "employee", roles: ["employee"] },
+  { title: "My Vehicles", href: "/app/vehicles", icon: Car, minRole: "employee", roles: ["employee"] },
+  { title: "My Trips", href: "/app/trips", icon: Route, minRole: "employee", roles: ["employee"] },
+  { title: "Live Tracking", href: "/app/track", icon: MapPin, minRole: "employee", roles: ["employee"] },
+  { title: "Wallet", href: "/wallet", icon: Wallet, minRole: "employee", roles: ["employee"] },
+  { title: "Ride History", href: "/history", icon: History, minRole: "employee", roles: ["employee"] },
+  { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee"] },
+  { title: "Settings", href: "/settings/profile", icon: Settings, minRole: "employee", roles: ["employee"] },
 
-  // ── Company admin console ───────────────────────────────────────────────────────────────
+  // ── Company admin console (grouped) ─────────────────────────────────────────────────────
+  // Employees reach notifications from the topbar bell (a dropdown); company admins keep the
+  // full-page feed. Support is shared, so it appears here too (grouped under Work for the admin).
+  { title: "Notifications", href: "/notifications", icon: Bell, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
+  { title: "Support", href: "/support", icon: LifeBuoy, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
   { title: "Reports", href: "/reports", icon: BarChart3, minRole: "company_admin", roles: ["company_admin"], group: "Insights" },
   { title: "Users", href: "/admin/users", icon: Users, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },
   { title: "Activity Log", href: "/admin/activity", icon: ScrollText, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },
   { title: "Settings", href: "/admin/settings", icon: Settings, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },
-
-  // ── Rides (Slice A — employee mode-switcher) ────────────────────────────────────────────
-  { title: "Find a Ride", href: "/app/find", icon: Search, minRole: "employee", roles: ["employee"], group: "Rides" },
-  { title: "Offer a Ride", href: "/app/offer", icon: PlusCircle, minRole: "employee", roles: ["employee"], group: "Rides" },
-  { title: "My Rides", href: "/app/rides", icon: Route, minRole: "employee", roles: ["employee"], group: "Rides" },
-  { title: "My Vehicles", href: "/app/vehicles", icon: Car, minRole: "employee", roles: ["employee"], group: "Rides" },
-
-  // ── Account (Slice C — wallet/history/profile employee surfaces) ────────────────────────
-  { title: "Wallet", href: "/wallet", icon: Wallet, minRole: "employee", roles: ["employee"], group: "Account" },
-  { title: "Ride History", href: "/history", icon: History, minRole: "employee", roles: ["employee"], group: "Account" },
-  { title: "Profile", href: "/settings/profile", icon: UserCircle, minRole: "employee", roles: ["employee"], group: "Account" },
 ];
 
 /** Filter the nav for a given role. `roles` allowlist wins when present; else fall back to minRole tier. */

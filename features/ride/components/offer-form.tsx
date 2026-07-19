@@ -40,6 +40,14 @@ export function OfferRideForm() {
     },
   });
 
+  // Auto-select the first approved vehicle to prevent validation errors if they forget to click it
+  React.useEffect(() => {
+    const first = vehicles?.[0];
+    if (first && !form.getValues("vehicleId")) {
+      form.setValue("vehicleId", first.id, { shouldValidate: true });
+    }
+  }, [vehicles, form]);
+
   const origin = form.watch("origin");
   const destination = form.watch("destination");
   const seatsTotal = form.watch("seatsTotal") ?? 1;
@@ -205,6 +213,14 @@ export function OfferRideForm() {
             )}
           </div>
 
+          {/* Debug block for silent validation errors */}
+          {Object.keys(form.formState.errors).length > 0 && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 font-mono whitespace-pre-wrap">
+              <strong>Form validation errors:</strong>
+              {"\n"}{JSON.stringify(form.formState.errors, null, 2)}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={offer.isPending}
@@ -252,7 +268,7 @@ export function OfferRideForm() {
               );
             })}
           </div>
-          {vehicleError && <p className="mt-2 text-[13px] text-[color:var(--destructive)]">{vehicleError}</p>}
+          {vehicleError && <p className="mt-2 text-[13px] font-medium text-destructive">{vehicleError}</p>}
           <p className="mt-3 text-[12.5px] text-[color:var(--ink-3)]">
             Inactive vehicles are awaiting admin approval.
           </p>

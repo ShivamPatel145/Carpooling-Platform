@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   // pg (node-postgres) is the LOCAL-dev database driver (swapped in for Neon's serverless driver).
   // Keep it external so the server bundles it as a runtime require rather than trying to bundle its
   // dynamic node internals.
-  serverExternalPackages: ["@react-pdf/renderer", "pg"],
+  serverExternalPackages: ["@react-pdf/renderer", "pg", "ws"],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // The employee shell (a client component) imports nav.config.ts, which imports a VALUE

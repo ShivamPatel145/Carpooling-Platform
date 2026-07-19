@@ -11,12 +11,17 @@ import { randomBytes, scryptSync } from "crypto";
 import * as schema from "./schema";
 import {
   booking,
+  invitation,
+  message,
   notification,
   organization,
+  payment,
   ride,
   savedPlace,
   supportTicket,
   systemSetting,
+  trip,
+  tripEvent,
   user,
   vehicle,
   walletEntry,
@@ -124,13 +129,19 @@ async function upsertUser(input: {
   return { id: row!.id, email: input.email };
 }
 
-/** Wipe an org's demo domain rows so re-running is deterministic (children first). */
+/** Wipe an org's demo domain rows so re-running is deterministic (children first: a row is deleted
+ *  before anything it is referenced by). trip_event/message/payment → trip → booking → ride. */
 async function clearOrgData(orgId: string) {
+  await db.delete(tripEvent).where(eq(tripEvent.orgId, orgId));
+  await db.delete(message).where(eq(message.orgId, orgId));
+  await db.delete(payment).where(eq(payment.orgId, orgId));
+  await db.delete(trip).where(eq(trip.orgId, orgId));
   await db.delete(booking).where(eq(booking.orgId, orgId));
   await db.delete(ride).where(eq(ride.orgId, orgId));
   await db.delete(vehicle).where(eq(vehicle.orgId, orgId));
   await db.delete(savedPlace).where(eq(savedPlace.orgId, orgId));
   await db.delete(walletEntry).where(eq(walletEntry.orgId, orgId));
+  await db.delete(invitation).where(eq(invitation.orgId, orgId));
 }
 
 const AHMEDABAD = {
@@ -232,17 +243,22 @@ async function seedOrg(opts: {
     .returning({ id: ride.id });
 
   // A passenger booked one seat (seatsAvailable already reflects it: 3 total, 1 booked → 2 left).
+  let morningBookingId: string | null = null;
   if (emps[1]) {
-    await db.insert(booking).values({
-      orgId,
-      rideId: morningRide!.id,
-      passengerId: emps[1].id,
-      seatsBooked: 1,
-      pickupPoint: AHMEDABAD.iskcon,
-      dropPoint: AHMEDABAD.infocity,
-      fareAmount: "80.00",
-      status: "confirmed",
-    });
+    const [bk] = await db
+      .insert(booking)
+      .values({
+        orgId,
+        rideId: morningRide!.id,
+        passengerId: emps[1].id,
+        seatsBooked: 1,
+        pickupPoint: AHMEDABAD.iskcon,
+        dropPoint: AHMEDABAD.infocity,
+        fareAmount: "80.00",
+        status: "confirmed",
+      })
+      .returning({ id: booking.id });
+    morningBookingId = bk!.id;
   }
 
   // Wallet: give the first employee a recharge so the wallet screen shows a real balance.
@@ -254,7 +270,135 @@ async function seedOrg(opts: {
     balanceAfter: "500.00",
   });
 
-  return { admin, emps };
+  return {
+    admin,
+    emps,
+    driver,
+    driverCarId: driverCar!.id,
+    morningRideId: morningRide!.id,
+    morningBookingId,
+  };
+}
+
+type SeededOrg = Awaited<ReturnType<typeof seedOrg>>;
+
+/**
+ * Live demo scenario for the ONE org a reviewer explores (Acme). Everything below turns the static
+ * "published ride + booking" into a moving story so every feature has data to click:
+ *   - a LIVE trip in progress (started) with a driver location ping + ETA  → Live Tracking + map
+ *   - persisted chat between driver and passenger on that trip             → per-trip chat
+ *   - a second COMPLETED trip with a settled wallet payment                → Ride History + payments
+ *   - a pending invitation                                                 → accept-invite flow
+ * Idempotent: seedOrg already cleared trips/messages/payments/invitations for the org first.
+ */
+async function seedDemoScenario(org: SeededOrg, orgId: string) {
+  const driver = org.driver; // Acme: employee@demo.dev (Eli)
+  const passenger = org.emps[1]; // Acme: rider@demo.dev (Uma) — the booked passenger
+  if (!passenger || !org.morningBookingId) return;
+
+  // ── 1. A LIVE trip on the morning ride (driver en route, mid-route location) ──────────────────
+  const startedAt = new Date(Date.now() - 8 * 60 * 1000); // started 8 min ago
+  const [liveTrip] = await db
+    .insert(trip)
+    .values({
+      orgId,
+      rideId: org.morningRideId,
+      status: "started",
+      startedAt,
+      // A point roughly a third of the way from ISKCON toward Infocity.
+      driverLat: "23.0810000",
+      driverLng: "72.5530000",
+      etaMin: 12,
+    })
+    .returning({ id: trip.id });
+  const liveTripId = liveTrip!.id;
+  await db.insert(tripEvent).values([
+    { orgId, tripId: liveTripId, type: "booked", payload: { via: "seed" }, at: new Date(startedAt.getTime() - 60_000) },
+    { orgId, tripId: liveTripId, type: "started", payload: { by: "driver" }, at: startedAt },
+    { orgId, tripId: liveTripId, type: "location", payload: { lat: 23.081, lng: 72.553, etaMin: 12 }, at: new Date() },
+  ]);
+
+  // ── 2. Persisted chat on the live trip (both directions) ──────────────────────────────────────
+  const t0 = startedAt.getTime();
+  await db.insert(message).values([
+    { orgId, tripId: liveTripId, senderId: driver.id, body: "Heading out now, I'm at ISKCON gate.", createdAt: new Date(t0 + 30_000) },
+    { orgId, tripId: liveTripId, senderId: passenger.id, body: "Great, I'm waiting near the pickup point.", createdAt: new Date(t0 + 90_000) },
+    { orgId, tripId: liveTripId, senderId: driver.id, body: "White Ciaz, GJ01AB1234. Be there in ~12 min.", createdAt: new Date(t0 + 150_000) },
+  ]);
+
+  // ── 3. A COMPLETED past trip with a settled wallet payment (history + payments) ───────────────
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [pastRide] = await db
+    .insert(ride)
+    .values({
+      orgId,
+      driverId: driver.id,
+      vehicleId: org.driverCarId,
+      origin: AHMEDABAD.iskcon,
+      destination: AHMEDABAD.infocity,
+      departAt: yesterday,
+      seatsTotal: 3,
+      seatsAvailable: 2,
+      farePerSeat: "80.00",
+      distanceKm: "22.50",
+      durationMin: 45,
+      status: "completed",
+    })
+    .returning({ id: ride.id });
+  const [pastBooking] = await db
+    .insert(booking)
+    .values({
+      orgId,
+      rideId: pastRide!.id,
+      passengerId: passenger.id,
+      seatsBooked: 1,
+      pickupPoint: AHMEDABAD.iskcon,
+      dropPoint: AHMEDABAD.infocity,
+      fareAmount: "80.00",
+      status: "completed",
+    })
+    .returning({ id: booking.id });
+  const [pastTrip] = await db
+    .insert(trip)
+    .values({
+      orgId,
+      rideId: pastRide!.id,
+      status: "payment_completed",
+      startedAt: new Date(yesterday.getTime() + 5 * 60_000),
+      completedAt: new Date(yesterday.getTime() + 50 * 60_000),
+      etaMin: 0,
+    })
+    .returning({ id: trip.id });
+  await db.insert(payment).values({
+    orgId,
+    bookingId: pastBooking!.id,
+    payerId: passenger.id,
+    method: "wallet",
+    amount: "80.00",
+    status: "succeeded",
+  });
+  // Wallet ledger for the passenger: a recharge then the fare debit (so the balance is real).
+  await db.insert(walletEntry).values([
+    { orgId, userId: passenger.id, delta: "500.00", reason: "recharge", balanceAfter: "500.00" },
+    { orgId, userId: passenger.id, delta: "-80.00", reason: "ride_payment", refId: pastBooking!.id, balanceAfter: "420.00" },
+  ]);
+  await db.insert(tripEvent).values([
+    { orgId, tripId: pastTrip!.id, type: "completed", payload: { by: "driver" }, at: new Date(yesterday.getTime() + 50 * 60_000) },
+    { orgId, tripId: pastTrip!.id, type: "payment", payload: { method: "wallet", amount: "80.00" }, at: new Date(yesterday.getTime() + 51 * 60_000) },
+  ]);
+
+  // ── 4. A pending invitation (accept-invite flow) ──────────────────────────────────────────────
+  const inviteToken = randomBytes(24).toString("hex");
+  await db.insert(invitation).values({
+    orgId,
+    email: "newhire@acme.dev",
+    role: "employee",
+    token: inviteToken,
+    status: "pending",
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+
+  return { liveTripId, inviteToken };
 }
 
 async function main() {
@@ -294,6 +438,12 @@ async function main() {
     ],
   });
   console.log(`  • org "Acme Mobility" (auto-approve): admin + ${orgA.emps.length} employees, vehicles, ride, booking`);
+
+  // Live demo story on Acme: a trip in progress + chat, a completed trip + payment, an invitation.
+  const scenario = await seedDemoScenario(orgA, orgAId);
+  if (scenario) {
+    console.log(`  • Acme live scenario: 1 in-progress trip (+chat), 1 completed trip (+wallet payment), 1 pending invite`);
+  }
 
   // ── Org B — approval queue (autoApprove off) ──────────────────────────────────────────────
   const orgBId = await upsertOrg({
@@ -359,6 +509,12 @@ async function main() {
   console.log("   Acme employees employee@demo.dev · rider@demo.dev · arjun@acme.dev · diya@acme.dev");
   console.log("   Globex admin   admin@globex.dev      (approval-queue org)");
   console.log("   Globex emps    kabir@globex.dev · meera@globex.dev");
+  if (scenario) {
+    console.log("\n🎬 Demo scenario (Acme): log in as employee@demo.dev (driver) or rider@demo.dev (passenger)");
+    console.log(`   • Live tracking + chat:  /app/track  →  a trip is IN PROGRESS right now`);
+    console.log(`   • Ride history + payment: /history  →  a completed trip with a settled wallet payment`);
+    console.log(`   • Accept-invite flow:     /accept-invite?token=${scenario.inviteToken}`);
+  }
   process.exit(0);
 }
 

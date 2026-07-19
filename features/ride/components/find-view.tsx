@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Search, SearchX, Minus, Plus } from "lucide-react";
+import { ArrowLeftRight, Loader2, Search, SearchX, Minus, Plus } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { EmptyState, ErrorState, Spinner } from "@/components/states";
 import { coCard, coAmberBtn } from "@/components/co/ui";
@@ -43,15 +43,41 @@ export function FindView() {
     setResults(rows);
   }
 
+  /** Wireframe §7.2: swap start ⇄ destination in one tap. */
+  function swapEnds() {
+    const origin = form.getValues("origin");
+    const destination = form.getValues("destination");
+    form.setValue("origin", destination, { shouldValidate: false });
+    form.setValue("destination", origin, { shouldValidate: false });
+  }
+
   return (
     <div>
       {/* Search card */}
       <div className={`${coCard} mb-5 p-5 sm:p-[22px]`}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="relative grid gap-4 sm:grid-cols-2">
               <LocationField control={form.control} name="origin" label="Pickup location" />
               <LocationField control={form.control} name="destination" label="Drop location" />
+              {/* Swap ends — floats between the two fields (stacked on mobile, side-by-side ≥sm). */}
+              <button
+                type="button"
+                onClick={swapEnds}
+                aria-label="Swap pickup and drop"
+                title="Swap pickup and drop"
+                className="absolute left-1/2 top-[34px] hidden h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-[color:var(--line-2)] bg-[color:var(--surface)] text-[color:var(--amber-strong)] shadow-sm transition-colors hover:border-[color:var(--amber-line)] sm:flex"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={swapEnds}
+                aria-label="Swap pickup and drop"
+                className="inline-flex items-center gap-1.5 justify-self-start rounded-md px-1.5 py-1 text-xs font-medium text-[color:var(--amber-strong)] hover:underline sm:hidden"
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" /> Swap
+              </button>
             </div>
 
             <div className="mt-4 flex flex-wrap items-end gap-4">
