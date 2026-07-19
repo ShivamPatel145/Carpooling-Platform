@@ -9,10 +9,13 @@ import { user } from "./user";
 import { booking } from "./booking";
 
 /**
- * payment — one per booking on trip completion (docs/PRD.md §7.8, §6). Method = cash/card/upi/wallet.
+ * payment — one per booking on trip completion (docs/PRD.md §7.8, §6). Method = cash/card/upi/wallet/qr.
  * Stripe confirmations arrive via webhook at /api/stripe/webhook and update status. Slice C.
+ *
+ * `qr` is a direct UPI transfer: the passenger scans the driver's payee QR and pays them bank-to-bank,
+ * then confirms — so it settles off-platform, exactly like cash (no wallet/Stripe movement).
  */
-export const paymentMethodEnum = pgEnum("payment_method", ["cash", "card", "upi", "wallet"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["cash", "card", "upi", "wallet", "qr"]);
 export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
 
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "succeeded", "failed", "refunded"]);

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
-import { db } from "@/db";
-import { payment, walletEntry, booking, ride } from "@/db/schema";
+import type Stripe from "stripe";
 import { eq, desc } from "drizzle-orm";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { db } from "@/db";
+import { walletEntry } from "@/db/schema";
+import { stripe, finalizeStripeRidePayment } from "@/lib/payments";
 
 /**
- * Stripe webhook handler.
- * Handles payment_intent.succeeded and payment_intent.payment_failed.
+ * Stripe webhook — the production backstop for card/UPI settlement (payment_intent.succeeded /
+ * .payment_failed) and wallet recharges. On localhost, Stripe can't call into a dev server, so ride
+ * payments are settled by the browser-side confirm endpoint instead; both paths funnel through the
+ * same idempotent finalizer, so it doesn't matter which one wins.
  */
 export async function POST(req: Request) {
   const payload = await req.text();
@@ -16,10 +17,9 @@ export async function POST(req: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event: Stripe.Event;
-
   try {
     if (!webhookSecret) {
-      // In dev mode without webhook secret, just bypass signature validation
+      // Dev without a webhook secret: skip signature validation.
       event = JSON.parse(payload) as Stripe.Event;
     } else {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
@@ -32,76 +32,34 @@ export async function POST(req: Request) {
   if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed") {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const metadata = paymentIntent.metadata;
-
-    if (!metadata || !metadata.action) {
-      return NextResponse.json({ received: true });
-    }
+    if (!metadata?.action) return NextResponse.json({ received: true });
 
     if (metadata.action === "wallet_recharge") {
       const { userId, orgId } = metadata;
       if (event.type === "payment_intent.succeeded" && userId && orgId) {
         const amount = Number(metadata.amount ?? 0);
 
-        // Find latest balance
-        const [latest] = await db.select({ balanceAfter: walletEntry.balanceAfter })
+        const [latest] = await db
+          .select({ balanceAfter: walletEntry.balanceAfter })
           .from(walletEntry)
           .where(eq(walletEntry.userId, userId))
           .orderBy(desc(walletEntry.createdAt))
           .limit(1);
-
         const currentBalance = latest ? Number(latest.balanceAfter) : 0;
-        const newBalance = currentBalance + amount;
 
         await db.insert(walletEntry).values({
           orgId,
           userId,
           delta: amount.toString(),
           reason: "recharge",
-          balanceAfter: newBalance.toString(),
+          balanceAfter: (currentBalance + amount).toString(),
         });
       }
-    } else if (metadata.action === "ride_payment") {
-      const status = event.type === "payment_intent.succeeded" ? "succeeded" : "failed";
-      await db.update(payment)
-        .set({ status })
-        .where(eq(payment.stripePaymentIntentId, paymentIntent.id));
-
-      if (status === "succeeded" && metadata.paymentId) {
-        // Find the payment, booking, and ride to get the driverId
-        const [p] = await db.select().from(payment).where(eq(payment.id, metadata.paymentId));
-        if (p) {
-          const [b] = await db.select().from(booking).where(eq(booking.id, p.bookingId));
-          if (b) {
-            const [r] = await db.select().from(ride).where(eq(ride.id, b.rideId));
-            if (r) {
-              const amount = Number(p.amount);
-              
-              // Find latest balance for the driver
-              const [latestDriver] = await db.select({ balanceAfter: walletEntry.balanceAfter })
-                .from(walletEntry)
-                .where(eq(walletEntry.userId, r.driverId))
-                .orderBy(desc(walletEntry.createdAt))
-                .limit(1);
-
-              const currentDriverBalance = latestDriver ? Number(latestDriver.balanceAfter) : 0;
-              const newDriverBalance = currentDriverBalance + amount;
-
-              // Credit the driver's wallet
-              await db.insert(walletEntry).values({
-                orgId: p.orgId,
-                userId: r.driverId,
-                delta: amount.toString(),
-                reason: "ride_payment",
-                refId: p.id,
-                balanceAfter: newDriverBalance.toString(),
-              });
-            }
-          }
-        }
-      }
+    } else if (metadata.action === "ride_payment" && metadata.paymentId) {
+      // Credit the driver + complete the trip (idempotent — safe if the confirm endpoint got here first).
+      await finalizeStripeRidePayment(metadata.paymentId, event.type === "payment_intent.succeeded");
     }
   }
 
   return NextResponse.json({ received: true });
 }
-

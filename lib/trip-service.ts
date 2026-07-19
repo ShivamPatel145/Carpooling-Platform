@@ -181,6 +181,7 @@ async function buildViews(
       destination: r.destination,
       departAt: isoReq(r.departAt),
       farePerSeat: r.farePerSeat,
+      bookingId: myBooking?.id ?? null,
       fareAmount: myBooking?.fareAmount ?? null,
       seatsBooked: myBooking?.seatsBooked ?? null,
       distanceKm: r.distanceKm,

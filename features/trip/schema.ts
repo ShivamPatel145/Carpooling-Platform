@@ -37,10 +37,11 @@ export const isLiveStatus = (s: TripStatus): boolean => LIVE_STATUSES.includes(s
 /**
  * State machine (PRD §7.5). `completed` is transient: completing hands off to payment, so the
  * transition endpoint auto-advances completed → payment_pending (the B→C seam). payment_completed
- * is Slice C's to set once paid.
+ * is Slice C's to set once paid. EITHER party (driver or passenger) can mark the ride complete, so a
+ * `completed` edge exists from booked/started/in_progress.
  */
 export const TRIP_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
-  booked: ["started"],
+  booked: ["started", "completed"],
   started: ["in_progress", "completed"],
   in_progress: ["completed"],
   completed: ["payment_pending"],
@@ -48,13 +49,12 @@ export const TRIP_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
   payment_completed: [],
 };
 
-/** Transitions the DRIVER initiates. payment_completed is passenger/payment-initiated (Slice C). */
-export const DRIVER_TRANSITIONS: readonly TripStatus[] = [
-  "started",
-  "in_progress",
-  "completed",
-  "payment_pending",
-] as const;
+/**
+ * Transitions ONLY the driver may initiate (starting / advancing the drive). Completion is
+ * deliberately NOT here — both the driver and the passenger can mark the ride complete.
+ * payment_completed is passenger/payment-initiated (Slice C).
+ */
+export const DRIVER_TRANSITIONS: readonly TripStatus[] = ["started", "in_progress", "payment_pending"] as const;
 
 export interface TripParticipant {
   id: string;
@@ -78,7 +78,8 @@ export interface TripView {
   destination: GeoPoint;
   departAt: string;
   farePerSeat: string;
-  /** the caller's own booking (passenger view) */
+  /** the caller's own booking (passenger view) — id + fare, drives the "Pay now" link (Slice C) */
+  bookingId: string | null;
   fareAmount: string | null;
   seatsBooked: number | null;
   distanceKm: string | null;

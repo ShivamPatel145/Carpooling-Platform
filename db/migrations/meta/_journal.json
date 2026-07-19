@@ -15,6 +15,13 @@
       "when": 1784379612459,
       "tag": "0001_misty_phantom_reporter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784435307024,
+      "tag": "0002_volatile_gorgon",
+      "breakpoints": true
     }
   ]
 }

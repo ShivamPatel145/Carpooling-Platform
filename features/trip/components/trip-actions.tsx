@@ -8,8 +8,8 @@ import { isLiveStatus, type TripView } from "@/features/trip/schema";
 
 /**
  * Role- and status-aware lifecycle actions for a trip (PRD §7.5 — "each state renders the right
- * actions for driver vs passenger"). Driver: Start / Complete. Both: Track (while live), Call, Chat.
- * Passenger: Pay (once payment_pending → routes to Slice C).
+ * actions for driver vs passenger"). Driver: Start. Both driver AND passenger: Complete (while the
+ * ride is under way), Track (while live), Call, Chat. Passenger: Pay (once payment_pending → Slice C).
  */
 export function TripActions({ trip, onOpenChat }: { trip: TripView; onOpenChat?: () => void }) {
   const transition = useTransitionTrip(trip.id);
@@ -25,7 +25,7 @@ export function TripActions({ trip, onOpenChat }: { trip: TripView; onOpenChat?:
           Start trip
         </Button>
       )}
-      {isDriver && (trip.status === "started" || trip.status === "in_progress") && (
+      {(trip.status === "booked" || trip.status === "started" || trip.status === "in_progress") && (
         <Button onClick={() => transition.mutate("completed")} disabled={transition.isPending}>
           {transition.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flag className="h-4 w-4" />}
           Complete trip
@@ -39,9 +39,9 @@ export function TripActions({ trip, onOpenChat }: { trip: TripView; onOpenChat?:
           </Link>
         </Button>
       )}
-      {!isDriver && trip.status === "payment_pending" && (
+      {!isDriver && trip.status === "payment_pending" && trip.bookingId && (
         <Button asChild>
-          <Link href={`/app/pay/${trip.id}`}>
+          <Link href={`/pay/${trip.bookingId}`}>
             <CreditCard className="h-4 w-4" />
             Pay now
           </Link>
