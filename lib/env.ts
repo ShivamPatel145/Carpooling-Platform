@@ -13,7 +13,7 @@ const envSchema = z.object({
 
   // ── Database driver select ───────────────────────────────────────────────────────────────
   // "postgres" (default) → node-postgres against a local/standard Postgres (hackathon setup).
-  // "neon"                → Neon's serverless HTTP driver (use for Vercel/Neon hosting).
+  // "neon"                → Neon's serverless WebSocket driver (use for Vercel/Neon hosting).
   // Both code paths live in db/index.ts; flip this one var to switch. Auto-detects "neon" when the
   // URL host looks like Neon and the flag is left at its default.
   DB_DRIVER: z.enum(["postgres", "neon"]).default("postgres"),

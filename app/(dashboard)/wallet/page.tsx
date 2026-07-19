@@ -55,7 +55,7 @@ export default async function WalletPage() {
           <React.Suspense fallback={null}>
             <PaymentVerifier />
           </React.Suspense>
-          
+
           <div className="rounded-2xl border border-[color:var(--band-line)] bg-[color:var(--band)] p-6 text-[color:var(--on-band)]">
             <div className="font-sans text-[12px] font-semibold uppercase tracking-[0.08em] text-[color:var(--on-band-2)]">
               Wallet balance

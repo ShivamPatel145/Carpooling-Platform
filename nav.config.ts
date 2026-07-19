@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
-  Bell,
   Settings,
   Users,
   ScrollText,
@@ -70,10 +69,11 @@ export const navConfig: NavItem[] = [
   { title: "Support", href: "/support", icon: LifeBuoy, minRole: "employee", roles: ["employee"] },
   { title: "Settings", href: "/settings/profile", icon: Settings, minRole: "employee", roles: ["employee"] },
 
-  // ── Company admin console (grouped) ─────────────────────────────────────────────────────
-  // Employees reach notifications from the topbar bell (a dropdown); company admins keep the
-  // full-page feed. Support is shared, so it appears here too (grouped under Work for the admin).
-  { title: "Notifications", href: "/notifications", icon: Bell, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
+  // ── Company admin console ───────────────────────────────────────────────────────────────
+  // Dashboard is the console home (/admin). Company admins now mirror the employee notification
+  // UX: the topbar bell dropdown is the ONLY notifications surface (no full-page feed in the nav).
+  // Support is shared, so it appears here too (grouped under Work for the admin).
+  { title: "Dashboard", href: "/admin", icon: LayoutDashboard, minRole: "company_admin", roles: ["company_admin"] },
   { title: "Support", href: "/support", icon: LifeBuoy, minRole: "company_admin", roles: ["company_admin"], group: "Work" },
   { title: "Reports", href: "/reports", icon: BarChart3, minRole: "company_admin", roles: ["company_admin"], group: "Insights" },
   { title: "Users", href: "/admin/users", icon: Users, minRole: "company_admin", roles: ["company_admin"], group: "Administration" },

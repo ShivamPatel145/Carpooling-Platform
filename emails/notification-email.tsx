@@ -40,7 +40,7 @@ export function NotificationEmail({
   body,
   ctaLabel,
   ctaUrl,
-  productName = "Operations Platform",
+  productName = "Coride",
 }: NotificationEmailProps) {
   return (
     <Html>

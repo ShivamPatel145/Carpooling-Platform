@@ -111,10 +111,11 @@ export function WalletRecharge() {
             <DialogTitle className="text-center">Scan to Pay ₹{amount}</DialogTitle>
             <DialogDescription className="text-center">Use any UPI app (GPay, PhonePe, Paytm)</DialogDescription>
           </DialogHeader>
+          {/* white background is intentional — UPI QR scanners need a light, high-contrast field in any theme */}
           <div className="flex justify-center p-4 bg-white rounded-xl my-4">
             <QRCode value={nativeUpiLink} size={200} />
           </div>
-          <p className="text-xs text-[color:var(--ink-3)] mb-4 font-mono break-all bg-gray-50 p-2 rounded">
+          <p className="text-xs text-[color:var(--ink-3)] mb-4 font-mono break-all bg-[color:var(--surface-2)] p-2 rounded">
             {nativeUpiLink}
           </p>
           <button

@@ -9,9 +9,9 @@ import { OrgSettingsForm } from "@/features/organization";
 export const metadata: Metadata = { title: "Settings" };
 
 /**
- * /admin/settings — Company Details + Carpooling Configuration.
- * The company_admin edits their own org's config (fuel cost, domains, etc.).
- * SEAM: Slice C reads fuelCostPerKm + travelCostPerKm for financial reports — admin owns the config.
+ * /admin/settings — Company Details (name, allowed email domains, head office).
+ * The company_admin edits their own org's profile. Cost parameters are set at org creation by the
+ * platform admin; SEAM: Slice C still reads fuelCostPerKm + travelCostPerKm for financial reports.
  */
 export default async function AdminSettingsPage() {
   const session = await requireRolePage("company_admin");
@@ -30,7 +30,7 @@ export default async function AdminSettingsPage() {
           Company Settings
         </h2>
         <p className="m-0 mt-1 text-[15px] text-[color:var(--ink-2)]">
-          Domains, costs, and how carpooling works for your org.
+          Your organisation&apos;s name, allowed email domains, and head office.
         </p>
       </div>
       <OrgSettingsForm org={org} />
