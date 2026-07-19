@@ -11,63 +11,50 @@ import { withErrorHandler, ok } from "@/lib/api";
 export const GET = withErrorHandler(async () => {
   const { session, tenant } = await requirePermission("report", "read");
 
-  // Fetch org config
-  const [org] = await db.select().from(organization).where(eq(organization.id, tenant.orgId!)).limit(1);
+  // The trip/booking filters depend only on tenant + role (not on any query result), so org config,
+  // trips, and bookings are INDEPENDENT — fetch them in ONE parallel batch (the Neon pool pipelines
+  // them over a single round-trip) instead of three sequential awaits. On remote Neon this cuts the
+  // endpoint's DB time ~3×.
+  const isEmployee = session.user.role === "employee";
+
+  // Employee sees only trips they drove; admins see the whole org. payment_completed only.
+  const tripCond = isEmployee
+    ? scopedWhere(tenant, trip, and(eq(ride.driverId, session.user.id), eq(trip.status, "payment_completed")))
+    : scopedWhere(tenant, trip, eq(trip.status, "payment_completed"));
+  // Revenue = completed bookings on the driver's rides (employee) or across the org (admin).
+  const revenueCond = isEmployee
+    ? scopedWhere(tenant, booking, and(eq(ride.driverId, session.user.id), eq(booking.status, "completed")))
+    : scopedWhere(tenant, booking, eq(booking.status, "completed"));
+
+  const [orgRows, trips, bookings] = await Promise.all([
+    db.select().from(organization).where(eq(organization.id, tenant.orgId!)).limit(1),
+    db
+      .select({
+        id: trip.id,
+        distanceKm: ride.distanceKm,
+        departAt: ride.departAt,
+        completedAt: trip.completedAt,
+        vehicleId: ride.vehicleId,
+        vehicleModel: vehicle.model,
+      })
+      .from(trip)
+      .innerJoin(ride, eq(trip.rideId, ride.id))
+      .leftJoin(vehicle, eq(ride.vehicleId, vehicle.id))
+      .where(tripCond),
+    db
+      .select({
+        fareAmount: booking.fareAmount,
+        createdAt: booking.createdAt,
+      })
+      .from(booking)
+      .innerJoin(ride, eq(booking.rideId, ride.id))
+      .where(revenueCond),
+  ]);
+
+  const org = orgRows[0];
   const fuelCostPerKm = Number(org?.fuelCostPerKm ?? 0);
   const travelCostPerKm = Number(org?.travelCostPerKm ?? 0);
   const maintenanceMonthly = Number(org?.maintenanceMonthly ?? 0);
-
-  // Filter trips based on role
-  let tripCond;
-  if (session.user.role === "employee") {
-    // Employee only sees their own trips (as driver)
-    tripCond = scopedWhere(tenant, trip, and(
-      eq(ride.driverId, session.user.id),
-      eq(trip.status, "payment_completed")
-    ));
-  } else {
-    tripCond = scopedWhere(tenant, trip, eq(trip.status, "payment_completed"));
-  }
-
-  // Fetch trips and rides (+ vehicle for the vehicle-wise breakdown)
-  const trips = await db
-    .select({
-      id: trip.id,
-      distanceKm: ride.distanceKm,
-      departAt: ride.departAt,
-      completedAt: trip.completedAt,
-      vehicleId: ride.vehicleId,
-      vehicleModel: vehicle.model,
-    })
-    .from(trip)
-    .innerJoin(ride, eq(trip.rideId, ride.id))
-    .leftJoin(vehicle, eq(ride.vehicleId, vehicle.id))
-    .where(tripCond);
-
-  // Revenue from wallet entry (ride_payments for this user or org)
-  let revenueCond;
-  if (session.user.role === "employee") {
-    // For employee, revenue is what they got? No, walletEntry ride_payment is a spend.
-    // So if they are a driver, they don't get walletEntry. Wait, how do they get paid?
-    // The PRD says "Revenue from walletEntry ride-payments".
-    // Let's just sum all ride payments as revenue for the org.
-    // For employee, their revenue is their trips * fare.
-    revenueCond = scopedWhere(tenant, booking, and(
-      eq(ride.driverId, session.user.id),
-      eq(booking.status, "completed")
-    ));
-  } else {
-    revenueCond = scopedWhere(tenant, booking, eq(booking.status, "completed"));
-  }
-
-  const bookings = await db
-    .select({
-      fareAmount: booking.fareAmount,
-      createdAt: booking.createdAt,
-    })
-    .from(booking)
-    .innerJoin(ride, eq(booking.rideId, ride.id))
-    .where(revenueCond);
 
   let totalDistance = 0;
   trips.forEach((t) => {

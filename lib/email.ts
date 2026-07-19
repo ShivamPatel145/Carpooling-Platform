@@ -47,6 +47,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; i
       text: input.text,
     });
     
+    logger.info("Email sent", { to: input.to, subject: input.subject, id: info.messageId });
     return { ok: true, id: info.messageId };
   } catch (err) {
     logger.error("sendEmail threw", { err, subject: input.subject });
