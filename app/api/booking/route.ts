@@ -4,6 +4,7 @@ import { ride, booking } from "@/db/schema";
 import { bookingFormSchema } from "@/features/ride/schema";
 import { requirePermission, scopedWhere } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
+import { notifyUser } from "@/lib/notify";
 import { withErrorHandler, created } from "@/lib/api";
 import { ValidationError, ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
@@ -103,6 +104,29 @@ export const POST = withErrorHandler(async (req: Request) => {
     metadata: { rideId: values.rideId, seats: values.seatsBooked, fare: fareAmount },
     req,
   });
+
+  // Notify both sides (checklist: "booking confirmed" wiring). notifyUser never throws.
+  const routeLabel = `${target.origin.label} → ${target.destination.label}`;
+  await Promise.all([
+    notifyUser({
+      userId: session.user.id,
+      type: "success",
+      title: "Booking confirmed",
+      body: `${values.seatsBooked} seat${values.seatsBooked === 1 ? "" : "s"} on ${routeLabel}.`,
+      href: "/app/rides",
+      resource: "booking",
+      resourceId: bookingId,
+    }),
+    notifyUser({
+      userId: target.driverId,
+      type: "info",
+      title: "A seat on your ride was booked",
+      body: `${session.user.name ?? "A colleague"} booked ${values.seatsBooked} seat${values.seatsBooked === 1 ? "" : "s"} on ${routeLabel}.`,
+      href: "/app/rides",
+      resource: "booking",
+      resourceId: bookingId,
+    }),
+  ]);
 
   return created({ bookingId });
 });

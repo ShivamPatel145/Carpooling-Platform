@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, X } from "lucide-react";
+import { Flag, MapPin, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, StatusBadge, TableSkeleton } from "@/components/states";
 import {
@@ -15,6 +15,7 @@ import {
 import { RideCard } from "@/features/ride/components/ride-card";
 import { useMyRides, useMyBookings, useCancelRide, useCancelBooking } from "@/features/ride/hooks";
 import type { RideWithMeta, BookingWithMeta } from "@/features/ride/schema";
+import { CreateTicketDialog } from "@/features/support/components/create-ticket-dialog";
 
 /**
  * "My Rides" — the mode-switcher's history. Two tabs: rides I OFFER (driver) and seats I BOOKED
@@ -171,6 +172,20 @@ function BookingCard({
           </div>
           <div className="text-[11px] text-[color:var(--ink-3)]">total fare</div>
         </div>
+        {/* Report-an-issue → supportTicket linked via rideId (wireframe §7.2 "More options"). */}
+        <CreateTicketDialog
+          ride={{ id: b.rideId, label: `${b.origin.label} → ${b.destination.label}` }}
+          trigger={
+            <button
+              type="button"
+              aria-label="Report an issue with this ride"
+              title="Report an issue"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[color:var(--line-2)] text-[color:var(--ink-3)] transition-colors hover:border-[color:var(--amber-line)] hover:text-[color:var(--amber-strong)]"
+            >
+              <Flag className="h-4 w-4" />
+            </button>
+          }
+        />
         {onCancel && <CancelButton onClick={onCancel} disabled={cancelling} />}
       </div>
     </article>

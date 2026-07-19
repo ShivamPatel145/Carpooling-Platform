@@ -6,7 +6,7 @@ import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, ChevronDown, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { coAmberBtn } from "@/components/co/ui";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,15 @@ const coInput =
   "w-full rounded-[10px] border border-[color:var(--line-2)] bg-[color:var(--surface-2)] px-3.5 py-3 text-[15px] text-[color:var(--ink)] outline-none transition-colors placeholder:text-[color:var(--ink-3)] focus:border-[color:var(--amber-strong)]";
 const coLabel = "mb-1.5 block text-[13px] text-[color:var(--ink-2)]";
 
+/** Seeded demo accounts (see db/seed.ts) — one per role for a one-tap sign-in on the demo build. */
+const DEMO_PASSWORD = "Password123!";
+const DEMO_ACCOUNTS: Array<{ label: string; email: string; role: string }> = [
+  { label: "Super admin", email: "superadmin@demo.dev", role: "Platform operator" },
+  { label: "Company admin", email: "admin@demo.dev", role: "Acme org (auto-approve)" },
+  { label: "Employee · driver", email: "employee@demo.dev", role: "Acme · offers rides" },
+  { label: "Employee · passenger", email: "rider@demo.dev", role: "Acme · finds rides" },
+];
+
 /** Role is decided server-side from the account (looked up by email), so there's no role picker here. */
 function homeFor(role: string | undefined): string {
   if (role === "super_admin") return "/platform";
@@ -36,6 +45,8 @@ export function LoginForm() {
   const { toast } = useToast();
   const [pending, setPending] = React.useState(false);
   const [showPw, setShowPw] = React.useState(false);
+  const [demoOpen, setDemoOpen] = React.useState(false);
+  const [demoEmail, setDemoEmail] = React.useState<string | null>(null);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -43,25 +54,39 @@ export function LoginForm() {
   });
   const { errors } = form.formState;
 
-  async function onSubmit(values: Values) {
-    setPending(true);
-    const res = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
+  async function authenticate(email: string, password: string) {
+    const res = await signIn("credentials", { email, password, redirect: false });
 
     if (res?.error) {
-      setPending(false);
       toast({ variant: "destructive", title: "Sign in failed", description: "Incorrect email or password." });
-      return;
+      return false;
     }
 
     // The account's role (keyed by email) is the source of truth — route to its console.
     const session = await getSession();
-    setPending(false);
     router.push(callbackUrl || homeFor(session?.user?.role));
     router.refresh();
+    return true;
+  }
+
+  async function onSubmit(values: Values) {
+    if (pending) return;
+    setPending(true);
+    const ok = await authenticate(values.email, values.password);
+    if (!ok) setPending(false);
+  }
+
+  async function signInAsDemo(email: string) {
+    if (pending) return;
+    setPending(true);
+    setDemoEmail(email);
+    form.setValue("email", email);
+    form.setValue("password", DEMO_PASSWORD);
+    const ok = await authenticate(email, DEMO_PASSWORD);
+    if (!ok) {
+      setPending(false);
+      setDemoEmail(null);
+    }
   }
 
   return (
@@ -77,7 +102,10 @@ export function LoginForm() {
         <ThemeToggle />
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      {/* method="post" so the browser's native fallback (Enter pressed before hydration, or JS
+          disabled) never serialises email/password into the URL as a GET query string; the real
+          submit is always the JS handler below, which preventDefaults and calls signIn(). */}
+      <form method="post" onSubmit={(e) => { e.preventDefault(); void form.handleSubmit(onSubmit)(e); }} noValidate>
         <label className="mb-1 block">
           <span className={coLabel}>Work email or mobile</span>
           <input
@@ -128,10 +156,68 @@ export function LoginForm() {
         </div>
 
         <button type="submit" disabled={pending} className={`${coAmberBtn} w-full py-3.5 text-[15.5px]`}>
-          {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {pending && !demoEmail && <Loader2 className="h-4 w-4 animate-spin" />}
           Sign in
         </button>
       </form>
+
+      {/* Demo credentials — one-tap sign-in for every seeded role (demo build only). */}
+      <div className="mt-5 rounded-[12px] border border-[color:var(--line-2)] bg-[color:var(--surface-2)]">
+        <button
+          type="button"
+          onClick={() => setDemoOpen((o) => !o)}
+          aria-expanded={demoOpen}
+          className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left"
+        >
+          <span className="flex items-center gap-2 text-[13.5px] font-semibold text-[color:var(--ink)]">
+            <Zap className="h-[15px] w-[15px] text-[color:var(--amber-strong)]" strokeWidth={2} />
+            Demo credentials
+          </span>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-[color:var(--ink-3)] transition-transform",
+              demoOpen && "rotate-180",
+            )}
+            strokeWidth={1.75}
+          />
+        </button>
+
+        {demoOpen && (
+          <div className="border-t border-[color:var(--line-2)] p-2">
+            <p className="px-1.5 pb-2 pt-1 text-[12px] text-[color:var(--ink-3)]">
+              Tap an account to sign in instantly. Password:{" "}
+              <span className="font-mono text-[color:var(--ink-2)]">{DEMO_PASSWORD}</span>
+            </p>
+            <div className="grid gap-1.5">
+              {DEMO_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void signInAsDemo(acc.email)}
+                  className="flex items-center justify-between gap-3 rounded-[9px] border border-[color:var(--line-2)] bg-[color:var(--surface)] px-3 py-2.5 text-left transition-colors hover:border-[color:var(--ink)] disabled:pointer-events-none disabled:opacity-60"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13.5px] font-semibold text-[color:var(--ink)]">
+                      {acc.label}
+                    </span>
+                    <span className="block truncate font-mono text-[11.5px] text-[color:var(--ink-3)]">
+                      {acc.email} · {acc.role}
+                    </span>
+                  </span>
+                  {pending && demoEmail === acc.email ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[color:var(--ink-3)]" />
+                  ) : (
+                    <span className="shrink-0 font-mono text-[11.5px] font-semibold text-[color:var(--amber-strong)]">
+                      Sign in →
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       <p className="mt-[22px] text-center text-[13.5px] text-[color:var(--ink-3)]">
         Accounts are created by your company. Ask your admin if you don&apos;t have access yet.

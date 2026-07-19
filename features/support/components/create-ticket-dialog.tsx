@@ -28,14 +28,24 @@ const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
  * Raise-a-ticket dialog (Coride). RHF + the shared supportTicketFormSchema (one schema, reused by
  * the server action). Submits through the createSupportTicket server action; the requester + org are
  * stamped server-side. On success it refreshes the server-rendered ticket list.
+ *
+ * Pass `ride` to report an issue ABOUT a ride (wireframe §7.2 "More options → Report issue") — the
+ * ticket is linked via supportTicket.rideId and the dialog shows the ride context. Pass `trigger`
+ * to replace the default "New ticket" button (e.g. a row-menu item on a ride card).
  */
-export function CreateTicketDialog() {
+export function CreateTicketDialog({
+  ride,
+  trigger,
+}: {
+  ride?: { id: string; label: string };
+  trigger?: React.ReactNode;
+}) {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
 
   const form = useForm<SupportTicketFormValues>({
     resolver: zodResolver(supportTicketFormSchema),
-    defaultValues: { subject: "", description: "", priority: "medium" },
+    defaultValues: { subject: "", description: "", priority: "medium", rideId: ride?.id ?? null },
   });
 
   const {
@@ -47,9 +57,9 @@ export function CreateTicketDialog() {
 
   async function onSubmit(values: SupportTicketFormValues) {
     try {
-      await createSupportTicket(values);
+      await createSupportTicket({ ...values, rideId: ride?.id ?? null });
       toast({ variant: "success", title: "Ticket raised", description: "We'll get back to you shortly." });
-      reset({ subject: "", description: "", priority: "medium" });
+      reset({ subject: "", description: "", priority: "medium", rideId: ride?.id ?? null });
       setOpen(false);
       router.refresh();
     } catch {
@@ -60,16 +70,26 @@ export function CreateTicketDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className={cn(coAmberBtn, "px-[18px] py-2.5 text-[14px]")}>
-          <Plus className="h-4 w-4" />
-          New ticket
-        </button>
+        {trigger ?? (
+          <button type="button" className={cn(coAmberBtn, "px-[18px] py-2.5 text-[14px]")}>
+            <Plus className="h-4 w-4" />
+            New ticket
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Raise a ticket</DialogTitle>
-          <DialogDescription>Tell us what went wrong and we&apos;ll help.</DialogDescription>
+          <DialogTitle>{ride ? "Report an issue with this ride" : "Raise a ticket"}</DialogTitle>
+          <DialogDescription>
+            {ride ? "The ticket is linked to the ride so support has the context." : "Tell us what went wrong and we'll help."}
+          </DialogDescription>
         </DialogHeader>
+
+        {ride && (
+          <p className="rounded-[10px] border border-[color:var(--line)] bg-[color:var(--surface-2)] px-3 py-2 text-[13px] text-[color:var(--ink-2)]">
+            About ride: <span className="font-medium text-[color:var(--ink)]">{ride.label}</span>
+          </p>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>

@@ -105,7 +105,12 @@ export function AcceptInviteForm({ token, email, role, orgName }: AcceptInviteFo
 
       {/* Form */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* method="post" so the native fallback never puts the chosen password in the URL. */}
+        <form
+          method="post"
+          onSubmit={(e) => { e.preventDefault(); void form.handleSubmit(onSubmit)(e); }}
+          className="space-y-4"
+        >
           <TextField
             control={form.control}
             name="name"

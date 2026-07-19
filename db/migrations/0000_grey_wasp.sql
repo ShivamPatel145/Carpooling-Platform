@@ -11,7 +11,6 @@ CREATE TYPE "public"."booking_status" AS ENUM('pending', 'confirmed', 'cancelled
 CREATE TYPE "public"."trip_status" AS ENUM('booked', 'started', 'in_progress', 'completed', 'payment_pending', 'payment_completed');--> statement-breakpoint
 CREATE TYPE "public"."payment_method" AS ENUM('cash', 'card', 'upi', 'wallet');--> statement-breakpoint
 CREATE TYPE "public"."payment_status" AS ENUM('pending', 'succeeded', 'failed', 'refunded');--> statement-breakpoint
-CREATE TYPE "public"."demo_status" AS ENUM('draft', 'active', 'archived');--> statement-breakpoint
 CREATE TABLE "organization" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -265,20 +264,6 @@ CREATE TABLE "wallet_entry" (
 	"balance_after" numeric(12, 2) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "demo_entity" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"owner_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"description" text,
-	"status" "demo_status" DEFAULT 'draft' NOT NULL,
-	"amount" integer DEFAULT 0 NOT NULL,
-	"due_date" timestamp with time zone,
-	"is_pinned" boolean DEFAULT false NOT NULL,
-	"attachment_url" text
-);
---> statement-breakpoint
 ALTER TABLE "user" ADD CONSTRAINT "user_org_id_organization_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -313,7 +298,6 @@ ALTER TABLE "payment" ADD CONSTRAINT "payment_booking_id_booking_id_fk" FOREIGN 
 ALTER TABLE "payment" ADD CONSTRAINT "payment_payer_id_user_id_fk" FOREIGN KEY ("payer_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wallet_entry" ADD CONSTRAINT "wallet_entry_org_id_organization_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wallet_entry" ADD CONSTRAINT "wallet_entry_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "demo_entity" ADD CONSTRAINT "demo_entity_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "organization_name_idx" ON "organization" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "user_email_idx" ON "user" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "user_org_idx" ON "user" USING btree ("org_id");--> statement-breakpoint
@@ -367,8 +351,4 @@ CREATE INDEX "payment_status_idx" ON "payment" USING btree ("status");--> statem
 CREATE INDEX "payment_intent_idx" ON "payment" USING btree ("stripe_payment_intent_id");--> statement-breakpoint
 CREATE INDEX "wallet_entry_org_idx" ON "wallet_entry" USING btree ("org_id");--> statement-breakpoint
 CREATE INDEX "wallet_entry_user_idx" ON "wallet_entry" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "wallet_entry_created_idx" ON "wallet_entry" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "demo_entity_owner_idx" ON "demo_entity" USING btree ("owner_id");--> statement-breakpoint
-CREATE INDEX "demo_entity_status_idx" ON "demo_entity" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "demo_entity_name_idx" ON "demo_entity" USING btree ("name");--> statement-breakpoint
-CREATE INDEX "demo_entity_created_at_idx" ON "demo_entity" USING btree ("created_at");
+CREATE INDEX "wallet_entry_created_idx" ON "wallet_entry" USING btree ("created_at");
