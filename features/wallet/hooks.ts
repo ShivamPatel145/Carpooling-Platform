@@ -13,6 +13,8 @@ export function useWalletEntries() {
   return useQuery({
     queryKey: entriesKey(),
     queryFn: () => api.get<WalletEntry[]>("/api/wallet"),
+    refetchInterval: 5000,   // poll every 5s
+    staleTime: 3000,
   });
 }
 
@@ -20,8 +22,11 @@ export function useWalletBalance() {
   return useQuery({
     queryKey: balanceKey(),
     queryFn: () => api.get<{ balance: number }>("/api/wallet/balance"),
+    refetchInterval: 5000,   // poll every 5s
+    staleTime: 3000,
   });
 }
+
 
 export function useRechargeWallet() {
   const qc = useQueryClient();

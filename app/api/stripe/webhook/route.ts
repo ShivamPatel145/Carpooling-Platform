@@ -39,6 +39,15 @@ export async function POST(req: Request) {
       if (event.type === "payment_intent.succeeded" && userId && orgId) {
         const amount = Number(metadata.amount ?? 0);
 
+        // Idempotency: the reason carries the Stripe PI id, so a webhook + confirm-endpoint race
+        // (or a redelivered event) credits the wallet only once. Must match /api/wallet/confirm.
+        const existing = await db
+          .select({ id: walletEntry.id })
+          .from(walletEntry)
+          .where(eq(walletEntry.reason, `recharge:${paymentIntent.id}`))
+          .limit(1);
+        if (existing.length > 0) return NextResponse.json({ received: true });
+
         const [latest] = await db
           .select({ balanceAfter: walletEntry.balanceAfter })
           .from(walletEntry)
@@ -51,7 +60,7 @@ export async function POST(req: Request) {
           orgId,
           userId,
           delta: amount.toString(),
-          reason: "recharge",
+          reason: `recharge:${paymentIntent.id}`,
           balanceAfter: (currentBalance + amount).toString(),
         });
       }

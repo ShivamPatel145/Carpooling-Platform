@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "next-themes";
-import { ArrowLeft, MessageSquare, Phone, Radio, Wifi } from "lucide-react";
+import { ArrowLeft, MessageSquare, Phone, Radio, Wifi, Loader2 } from "lucide-react";
 import { ErrorState, Spinner, StatusBadge } from "@/components/states";
 import { coAmberBtn, coCard, coGhostBtn, CoAvatar, CoEyebrow, coInitials, splitDepartTime } from "@/components/co/ui";
 import { features } from "@/lib/client-features";
@@ -13,7 +13,7 @@ import { formatDateTime, humanize } from "@/lib/utils";
 import { getPusherClient } from "@/lib/pusher/client";
 import { PUSHER_EVENTS, tripChannel } from "@/lib/pusher/channels";
 import { isLiveStatus, type TripLocationPing, type TripStatus, type TripView } from "@/features/trip/schema";
-import { useMyTrips, useTrip } from "@/features/trip/hooks";
+import { useMyTrips, useTrip, usePayTrip } from "@/features/trip/hooks";
 import { DriverLocationControls } from "@/features/trip/components/driver-location-controls";
 import { TripChat } from "@/features/message/components/trip-chat";
 
@@ -165,6 +165,48 @@ function RouteRail({ trip }: { trip: TripView }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function PassengerPaymentPanel({ trip }: { trip: TripView }) {
+  const pay = usePayTrip();
+
+  async function handlePay(method: "wallet" | "cash") {
+    if (!trip.bookingId) return;
+    await pay.mutateAsync({ bookingId: trip.bookingId, method });
+  }
+
+  return (
+    <>
+      <CoEyebrow>Payment required</CoEyebrow>
+      <div className="mt-2 space-y-1.5 text-[13.5px] text-[color:var(--ink-2)]">
+        <div>
+          Amount due <span className="font-mono font-semibold text-[color:var(--ink)]">{inr(trip.fareAmount ?? 0)}</span>
+        </div>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={() => handlePay("wallet")}
+          disabled={pay.isPending}
+          className={`${coAmberBtn} flex-1 px-4 py-2.5 text-[13.5px]`}
+        >
+          {pay.isPending && pay.variables?.method === "wallet" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+          ) : null}
+          Pay via Wallet
+        </button>
+        <button
+          onClick={() => handlePay("cash")}
+          disabled={pay.isPending}
+          className={`${coGhostBtn} flex-1 px-4 py-2.5 text-[13.5px] border border-[color:var(--line-2)]`}
+        >
+          {pay.isPending && pay.variables?.method === "cash" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+          ) : null}
+          Pay Cash
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -360,6 +402,8 @@ export function TrackView({ id }: { id: string }) {
                   Tracking goes live when the driver starts the trip.
                 </p>
               </>
+            ) : trip.status === "payment_pending" && !isDriver ? (
+              <PassengerPaymentPanel trip={trip} />
             ) : (
               <>
                 <CoEyebrow>Trip summary</CoEyebrow>

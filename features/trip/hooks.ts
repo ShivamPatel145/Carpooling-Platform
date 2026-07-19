@@ -75,3 +75,20 @@ export function usePostLocation(id: string) {
       api.post<{ ok: boolean; status: TripStatus }>(`/api/trip/${id}/location`, loc),
   });
 }
+
+/** Passenger pays for a completed trip via wallet or cash. */
+export function usePayTrip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (values: { bookingId: string; method: "wallet" | "cash" }) =>
+      api.post<{ payment: { id: string }; clientSecret?: string }>("/api/payment", values),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+      toast({ variant: "success", title: "Payment complete!", description: "The driver has been paid." });
+    },
+    onError: (err: Error) =>
+      toast({ variant: "destructive", title: "Payment failed", description: err.message }),
+  });
+}
+
