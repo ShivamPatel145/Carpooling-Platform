@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { Loader2 } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRechargeWallet, useSimulateRecharge } from "@/features/wallet/hooks";
@@ -13,9 +12,15 @@ import { cn } from "@/lib/utils";
 import QRCode from "react-qr-code";
 import { useRouter } from "next/navigation";
 
+// The `@stripe/*` React tree is loaded lazily (client-only), reached only after a clientSecret
+// exists, so /wallet no longer eagerly compiles/bundles Stripe on first visit.
+const StripeCheckout = dynamic(
+  () => import("./stripe-checkout").then((m) => m.StripeCheckout),
+  { ssr: false, loading: () => <Loader2 className="mx-auto h-5 w-5 animate-spin" /> },
+);
+
 const PRESETS = [200, 500, 1000] as const;
-const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = pk ? loadStripe(pk) : null;
+const stripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 /**
  * Coride wallet recharge — the comp's quick-amount panel (₹200 / ₹500 / ₹1000 + "Add via UPI").
@@ -32,7 +37,7 @@ export function WalletRecharge() {
   const router = useRouter();
 
   async function startStripe() {
-    if (!stripePromise) {
+    if (!stripeConfigured) {
       toast({
         variant: "destructive",
         title: "Payments not configured",
@@ -131,47 +136,11 @@ export function WalletRecharge() {
             <DialogTitle>Confirm recharge</DialogTitle>
             <DialogDescription>Adding ₹{amount} to your Coride wallet.</DialogDescription>
           </DialogHeader>
-          {clientSecret && stripePromise && (
-            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-              <ConfirmForm onSuccess={done} />
-            </Elements>
+          {clientSecret && stripeConfigured && (
+            <StripeCheckout clientSecret={clientSecret} onSuccess={done} variant="amber" />
           )}
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function ConfirmForm({ onSuccess }: { onSuccess: () => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [busy, setBusy] = React.useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setBusy(true);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${window.location.origin}/wallet` },
-      redirect: "if_required",
-    });
-    setBusy(false);
-    if (error) {
-      toast({ variant: "destructive", title: "Payment failed", description: error.message });
-    } else {
-      toast({ variant: "success", title: "Wallet recharged", description: "Your balance is updated." });
-      onSuccess();
-    }
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-5">
-      <PaymentElement />
-      <button type="submit" disabled={busy || !stripe} className={cn(coAmberBtn, "w-full px-4 py-2.5 text-[14px]")}>
-        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-        Pay now
-      </button>
-    </form>
   );
 }

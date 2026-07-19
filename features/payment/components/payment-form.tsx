@@ -11,8 +11,6 @@ import { SelectField } from "@/components/form";
 import { paymentFormSchema, type PaymentFormValues } from "@/features/payment/schema";
 import { useCreatePayment, useConfirmPayment } from "@/features/payment/hooks";
 import { useRouter } from "next/navigation";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
