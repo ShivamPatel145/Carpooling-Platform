@@ -6,8 +6,8 @@ import { Pool } from "pg";
 import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
-import { eq } from "drizzle-orm";
-import { randomBytes, scryptSync } from "crypto";
+import { and, eq, inArray } from "drizzle-orm";
+import { randomBytes, randomUUID, scryptSync } from "crypto";
 import * as schema from "./schema";
 import {
   activityLog,
@@ -695,6 +695,281 @@ async function seedPlatformVolume(superAdminId: string, passwordHash: string) {
   return { orgs: orgDefs.length };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// BULK VOLUME — the "200 rows for all demo users" pass. ~200 rides across ~5 months for EVERY
+// employee in BOTH orgs (each is a driver AND a passenger), with bookings, completed trips, and
+// settled payments (QR / cash / UPI / card), so My Trips, Ride History and the dashboards are full
+// for everyone — including Globex's Kabir & Meera, who the Acme-only volume left empty. Plus a
+// curated set of ACTIVE trips so the active-ride card demos every affordance (live-track, complete
+// by either party, pay by QR/cash). Payments deliberately AVOID the wallet method so the existing
+// coherent wallet ledger is untouched; any employee still without a wallet gets a starter recharge.
+// Idempotent — clearOrgData wiped each org's domain rows before any of this ran.
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+
+/** Deterministic PRNG (mulberry32) so every reseed produces identical demo data. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const BULK_PLACES = Object.values(AHMEDABAD);
+const BULK_MODELS = [
+  "Maruti Swift", "Hyundai Creta", "Tata Punch", "Honda City",
+  "Kia Carens", "Toyota Glanza", "MG Astor", "Skoda Slavia",
+];
+
+function haversineKmSeed(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
+async function seedBulkData(input: {
+  orgAId: string;
+  orgBId: string;
+  acme: SeededUser[]; // [eli, uma, arjun, diya, rohan, priya, vikram, ananya, karan, sneha]
+  globex: SeededUser[]; // [kabir, meera]
+}) {
+  const { orgAId, orgBId, acme, globex } = input;
+  const rng = mulberry32(0x07102026);
+  const rint = (lo: number, hi: number) => lo + Math.floor(rng() * (hi - lo + 1));
+  const pick = <T>(a: readonly T[]): T => a[Math.floor(rng() * a.length)]!;
+  const now = Date.now();
+  const DAY = 86_400_000;
+  const windowStart = now - 150 * DAY;
+
+  const payMethod = (): "qr" | "cash" | "upi" | "card" => {
+    const table: Array<["qr" | "cash" | "upi" | "card", number]> = [["qr", 30], ["cash", 26], ["upi", 24], ["card", 20]];
+    let x = rng() * table.reduce((s, [, w]) => s + w, 0);
+    for (const [m, w] of table) if ((x -= w) < 0) return m;
+    return "cash";
+  };
+
+  const pairPlaces = () => {
+    const o = pick(BULK_PLACES);
+    let d = pick(BULK_PLACES);
+    while (d.label === o.label) d = pick(BULK_PLACES);
+    return { o, d };
+  };
+
+  // Approved vehicle per driver: reuse an existing approved one, else create (keeps the
+  // pending-approval queue intact — we only create for a driver who has none approved).
+  let vseq = 0;
+  const vehOf = new Map<string, string>();
+  async function ensureVehicle(orgId: string, userId: string): Promise<string> {
+    const cached = vehOf.get(userId);
+    if (cached) return cached;
+    const existing = await db.query.vehicle.findFirst({
+      where: and(eq(vehicle.ownerId, userId), eq(vehicle.approvalStatus, "approved")),
+    });
+    let id: string;
+    if (existing) {
+      id = existing.id;
+    } else {
+      vseq += 1;
+      id = randomUUID();
+      await db.insert(vehicle).values({
+        id,
+        orgId,
+        ownerId: userId,
+        model: BULK_MODELS[vseq % BULK_MODELS.length]!,
+        registrationNo: `GJ27${String.fromCharCode(65 + (vseq % 26))}${String.fromCharCode(65 + rint(0, 25))}${3000 + vseq}`,
+        seatingCapacity: rint(4, 5),
+        approvalStatus: "approved",
+      });
+    }
+    vehOf.set(userId, id);
+    return id;
+  }
+
+  const rideRows: (typeof ride.$inferInsert)[] = [];
+  const bookingRows: (typeof booking.$inferInsert)[] = [];
+  const tripRows: (typeof trip.$inferInsert)[] = [];
+  const paymentRows: (typeof payment.$inferInsert)[] = [];
+
+  async function genHistory(orgId: string, drivers: SeededUser[], passengers: SeededUser[], count: number, upcomingFrac: number) {
+    for (const dr of drivers) await ensureVehicle(orgId, dr.id);
+    for (let i = 0; i < count; i++) {
+      const driver = drivers[i % drivers.length]!;
+      const vehId = vehOf.get(driver.id)!;
+      const others = passengers.filter((p) => p.id !== driver.id);
+      if (!others.length) continue;
+
+      const { o, d } = pairPlaces();
+      const dist = Math.max(2, haversineKmSeed(o, d));
+      const durationMin = Math.max(8, Math.round((dist / 24) * 60));
+      const farePerSeat = Math.min(250, Math.max(20, Math.round(dist * 4)));
+      const seatsTotal = rint(2, 4);
+      const upcoming = rng() < upcomingFrac;
+      const hour = rng() < 0.5 ? rint(8, 10) : rint(17, 20);
+      const departAt = upcoming
+        ? new Date(now + rint(1, 14) * DAY + hour * 3_600_000)
+        : new Date(windowStart + Math.floor(rng() * (now - windowStart)));
+      const createdAt = upcoming
+        ? new Date(now - rint(0, 6) * DAY - rint(0, 20) * 3_600_000)
+        : new Date(departAt.getTime() - rint(1, 10) * DAY);
+      const startedAt = new Date(departAt.getTime() + 3 * 60_000);
+      const completedAt = new Date(departAt.getTime() + (durationMin + 5) * 60_000);
+
+      const nPax = Math.min(others.length, seatsTotal, rint(1, 2));
+      const poolCopy = [...others];
+      const chosen: SeededUser[] = [];
+      for (let k = 0; k < nPax && poolCopy.length; k++) {
+        chosen.push(poolCopy.splice(Math.floor(rng() * poolCopy.length), 1)[0]!);
+      }
+      const seatsAvailable = Math.max(0, seatsTotal - chosen.length);
+      const rideId = randomUUID();
+
+      rideRows.push({
+        id: rideId,
+        orgId,
+        driverId: driver.id,
+        vehicleId: vehId,
+        origin: o,
+        destination: d,
+        departAt,
+        seatsTotal,
+        seatsAvailable,
+        farePerSeat: farePerSeat.toFixed(2),
+        distanceKm: dist.toFixed(2),
+        durationMin,
+        status: upcoming ? (seatsAvailable === 0 ? "full" : "published") : "completed",
+        isRecurring: rng() < 0.25,
+        recurrenceRule: rng() < 0.25 ? "MO,TU,WE,TH,FR" : null,
+        createdAt,
+        updatedAt: upcoming ? createdAt : completedAt,
+      });
+
+      if (!upcoming) {
+        tripRows.push({
+          id: randomUUID(),
+          orgId,
+          rideId,
+          status: "payment_completed",
+          startedAt,
+          completedAt,
+          etaMin: 0,
+          createdAt: startedAt,
+          updatedAt: completedAt,
+        });
+      }
+
+      for (const p of chosen) {
+        const bookingId = randomUUID();
+        bookingRows.push({
+          id: bookingId,
+          orgId,
+          rideId,
+          passengerId: p.id,
+          seatsBooked: 1,
+          pickupPoint: o,
+          dropPoint: d,
+          fareAmount: farePerSeat.toFixed(2),
+          status: upcoming ? "confirmed" : "completed",
+          createdAt,
+          updatedAt: upcoming ? createdAt : completedAt,
+        });
+        if (!upcoming) {
+          paymentRows.push({
+            id: randomUUID(),
+            orgId,
+            bookingId,
+            payerId: p.id,
+            method: payMethod(),
+            amount: farePerSeat.toFixed(2),
+            status: "succeeded",
+            createdAt: completedAt,
+            updatedAt: completedAt,
+          });
+        }
+      }
+    }
+  }
+
+  // A curated ACTIVE trip (payment_pending → passenger sees "Pay now"; booked → both see Start/Complete).
+  function curated(orgId: string, driver: SeededUser, passenger: SeededUser, kind: "pending" | "booked") {
+    const vehId = vehOf.get(driver.id)!;
+    const { o, d } = pairPlaces();
+    const dist = Math.max(3, haversineKmSeed(o, d));
+    const durationMin = Math.max(10, Math.round((dist / 24) * 60));
+    const fare = Math.min(250, Math.max(30, Math.round(dist * 4)));
+    const rideId = randomUUID();
+    const bookingId = randomUUID();
+    if (kind === "pending") {
+      const departAt = new Date(now - rint(1, 4) * 3_600_000);
+      const startedAt = new Date(departAt.getTime() + 3 * 60_000);
+      const completedAt = new Date(departAt.getTime() + (durationMin + 4) * 60_000);
+      rideRows.push({ id: rideId, orgId, driverId: driver.id, vehicleId: vehId, origin: o, destination: d, departAt, seatsTotal: 3, seatsAvailable: 2, farePerSeat: fare.toFixed(2), distanceKm: dist.toFixed(2), durationMin, status: "completed", isRecurring: false, recurrenceRule: null, createdAt: new Date(departAt.getTime() - DAY), updatedAt: completedAt });
+      bookingRows.push({ id: bookingId, orgId, rideId, passengerId: passenger.id, seatsBooked: 1, pickupPoint: o, dropPoint: d, fareAmount: fare.toFixed(2), status: "confirmed", createdAt: new Date(departAt.getTime() - DAY), updatedAt: completedAt });
+      tripRows.push({ id: randomUUID(), orgId, rideId, status: "payment_pending", startedAt, completedAt, etaMin: 0, createdAt: startedAt, updatedAt: completedAt });
+    } else {
+      const departAt = new Date(now + rint(1, 3) * DAY + rint(8, 10) * 3_600_000);
+      rideRows.push({ id: rideId, orgId, driverId: driver.id, vehicleId: vehId, origin: o, destination: d, departAt, seatsTotal: 3, seatsAvailable: 2, farePerSeat: fare.toFixed(2), distanceKm: dist.toFixed(2), durationMin, status: "published", isRecurring: false, recurrenceRule: null, createdAt: new Date(now - rint(0, 2) * DAY), updatedAt: new Date() });
+      bookingRows.push({ id: bookingId, orgId, rideId, passengerId: passenger.id, seatsBooked: 1, pickupPoint: o, dropPoint: d, fareAmount: fare.toFixed(2), status: "confirmed", createdAt: new Date(now - rint(0, 1) * DAY), updatedAt: new Date() });
+      tripRows.push({ id: randomUUID(), orgId, rideId, status: "booked", createdAt: new Date(), updatedAt: new Date() });
+    }
+  }
+
+  // Drivers = employees who already own an approved vehicle (so we don't dilute the approval queue).
+  const acmeDrivers = [acme[0], acme[1], acme[2], acme[3], acme[4], acme[6]].filter((u): u is SeededUser => Boolean(u));
+  const globexDrivers = globex; // both drive (Meera gets a created approved car; her pending one stays queued)
+
+  await genHistory(orgAId, acmeDrivers, acme, 160, 0.18);
+  await genHistory(orgBId, globexDrivers, globex, 40, 0.18);
+
+  // Curated active trips. Eli/Uma keep the scenario LIVE trip, so it still top-ranks for them.
+  if (acme[0] && acme[3]) curated(orgAId, acme[0], acme[3], "pending"); // Diya → Pay now (QR/cash)
+  if (acme[1] && acme[2]) curated(orgAId, acme[1], acme[2], "pending"); // Arjun → Pay now (QR/cash)
+  if (globex[0] && globex[1]) curated(orgBId, globex[0], globex[1], "booked"); // Kabir: Start/Complete · Meera: Complete
+
+  // Insert in FK order (ride → booking → trip → payment), chunked to keep statements small.
+  async function chunked<T>(rows: T[], run: (c: T[]) => Promise<unknown>, size = 100) {
+    for (let i = 0; i < rows.length; i += size) {
+      const c = rows.slice(i, i + size);
+      if (c.length) await run(c);
+    }
+  }
+  await chunked(rideRows, (c) => db.insert(ride).values(c));
+  await chunked(bookingRows, (c) => db.insert(booking).values(c));
+  await chunked(tripRows, (c) => db.insert(trip).values(c));
+  await chunked(paymentRows, (c) => db.insert(payment).values(c));
+
+  // Starter recharge for any employee still without wallet history, so every wallet screen is real.
+  const allEmp: Array<{ id: string; orgId: string }> = [
+    ...acme.map((e) => ({ id: e.id, orgId: orgAId })),
+    ...globex.map((e) => ({ id: e.id, orgId: orgBId })),
+  ];
+  const withWallet = await db
+    .select({ userId: walletEntry.userId })
+    .from(walletEntry)
+    .where(inArray(walletEntry.userId, allEmp.map((e) => e.id)));
+  const hasWallet = new Set(withWallet.map((r) => r.userId));
+  const rechargeRows = allEmp
+    .filter((e) => !hasWallet.has(e.id))
+    .map((e) => {
+      const amt = 500 + rint(1, 10) * 100;
+      return { orgId: e.orgId, userId: e.id, delta: amt.toFixed(2), reason: "recharge", balanceAfter: amt.toFixed(2) };
+    });
+  if (rechargeRows.length) await db.insert(walletEntry).values(rechargeRows);
+
+  return {
+    rides: rideRows.length,
+    bookings: bookingRows.length,
+    trips: tripRows.length,
+    payments: paymentRows.length,
+    recharges: rechargeRows.length,
+  };
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set.");
   console.log("🌱 Seeding carpooling demo…");
@@ -768,6 +1043,19 @@ async function main() {
     ],
   });
   console.log(`  • org "Globex Transit" (approval queue): admin + ${orgB.emps.length} employees, ride + pending vehicle`);
+
+  // Bulk volume across BOTH orgs → ~200 rides so EVERY demo user (incl. Globex's Kabir/Meera) has
+  // months of trips, history and payments, plus a curated active ride for the active-ride card.
+  const bulk = await seedBulkData({
+    orgAId,
+    orgBId,
+    acme: [...orgA.emps, ...volume.extra],
+    globex: orgB.emps,
+  });
+  console.log(
+    `  • bulk volume (both orgs): +${bulk.rides} rides, +${bulk.bookings} bookings, +${bulk.trips} trips, ` +
+      `+${bulk.payments} payments, +${bulk.recharges} starter wallets`,
+  );
 
   // Platform volume so the SUPER ADMIN console opens populated too (8 orgs, invites, audit, bell).
   const platform = await seedPlatformVolume(superAdmin.id, passwordHash);
@@ -843,6 +1131,7 @@ async function main() {
     console.log(`   • Live tracking + chat:  /app/track  →  a trip is IN PROGRESS right now`);
     console.log(`   • Ride history + payment: /history  →  a completed trip with a settled wallet payment`);
     console.log(`   • Accept-invite flow:     /accept-invite?token=${scenario.inviteToken}`);
+    console.log("\n🅰️  Active-ride card (top of /app/trips): Eli/Uma = live trip · Arjun/Diya = Pay now (QR/cash) · Kabir/Meera = Start/Complete");
   }
   process.exit(0);
 }

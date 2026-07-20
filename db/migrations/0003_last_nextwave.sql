@@ -1,0 +1,1 @@
+ALTER TYPE "public"."vehicle_approval_status" ADD VALUE 'rejected';

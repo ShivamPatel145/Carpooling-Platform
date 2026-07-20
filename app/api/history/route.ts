@@ -56,8 +56,18 @@ export const GET = withErrorHandler(async () => {
     .where(basePassengerCond)
     .orderBy(desc(trip.createdAt));
 
-  // Merge and sort
-  const allHistory = [...asDriver.map(d => ({ ...d, booking: null })), ...asPassenger];
+  // The passenger join is trip↔booking on rideId: a passenger with >1 active booking on the same
+  // ride (or any future fan-out) repeats the SAME trip row → duplicate React keys downstream. Collapse
+  // to one entry per trip so history is one card per completed trip.
+  const seenPassengerTrips = new Set<string>();
+  const passengerHistory = asPassenger.filter((row) => {
+    if (seenPassengerTrips.has(row.trip.id)) return false;
+    seenPassengerTrips.add(row.trip.id);
+    return true;
+  });
+
+  // Merge and sort (newest first)
+  const allHistory = [...asDriver.map((d) => ({ ...d, booking: null })), ...passengerHistory];
   allHistory.sort((a, b) => new Date(b.trip.createdAt).getTime() - new Date(a.trip.createdAt).getTime());
 
   return ok(allHistory);

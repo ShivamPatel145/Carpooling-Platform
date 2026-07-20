@@ -95,3 +95,92 @@ export function haversineKm(
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
+
+/** A geographic point in {lat, lng} form (as stored on ride/booking GeoPoints). */
+type LatLng = { lat: number; lng: number };
+
+/**
+ * Nearest approach of a point to a route polyline. Returns the crow-flies distance to the closest
+ * point on the line (`distKm`) AND how far along the route that closest point sits (`alongKm`, km
+ * from the route start). The `alongKm` lets the caller enforce travel DIRECTION — a passenger's
+ * pickup must sit *before* their drop along the driver's route.
+ *
+ * `coords` are [lng, lat] (GeoJSON order, as OSRM returns and we cache on ride.routeGeoJSON);
+ * `segLen`/`cum` are the per-segment and cumulative haversine lengths, precomputed ONCE per route by
+ * corridorMatch so the two projections (pickup, drop) share one distance scale and stay comparable.
+ *
+ * Distances use a local equirectangular projection centred on the point — exact enough at city scale
+ * and cheap. The along-route position multiplies the segment's *haversine* length by the projection
+ * fraction `t`, so ordering is projection-independent.
+ */
+function projectOntoRoute(
+  point: LatLng,
+  coords: LngLat[],
+  segLen: number[],
+  cum: number[],
+): { distKm: number; alongKm: number } {
+  const kx = 111.32 * Math.cos(toRad(point.lat)); // km per ° lng at this latitude
+  const ky = 110.57; // km per ° lat
+  const px = point.lng * kx;
+  const py = point.lat * ky;
+
+  let bestDist = Infinity;
+  let bestAlong = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const a = coords[i]!;
+    const b = coords[i + 1]!;
+    const ax = a[0] * kx;
+    const ay = a[1] * ky;
+    const dx = b[0] * kx - ax;
+    const dy = b[1] * ky - ay;
+    const lenSq = dx * dx + dy * dy;
+    // Clamped projection parameter of the point onto segment AB.
+    let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const distKm = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    if (distKm < bestDist) {
+      bestDist = distKm;
+      bestAlong = cum[i]! + t * segLen[i]!;
+    }
+  }
+  return { distKm: Math.round(bestDist * 100) / 100, alongKm: bestAlong };
+}
+
+/**
+ * Corridor match — does the driver's `route` pass near BOTH the passenger's pickup and drop, with
+ * pickup coming *before* drop along the route? This is what lets a ride surface to a passenger whose
+ * stops are INTERMEDIATE points on the route, not just near the driver's start/end. Endpoint matches
+ * fall out for free (origin sits at along≈0, destination at along≈routeLength).
+ *
+ * Returns the two perpendicular distances to the route (km) and whether the direction is right, so
+ * the caller can threshold on a radius and rank by total detour. `coords` are [lng, lat].
+ */
+export function corridorMatch(
+  pickup: LatLng,
+  drop: LatLng,
+  coords: LngLat[],
+): { pickupKm: number; dropKm: number; ordered: boolean } {
+  const n = coords.length;
+  if (n < 2) {
+    // Degenerate route (no usable geometry): treat the lone vertex, if any, as the whole corridor.
+    const v = coords[0];
+    if (!v) return { pickupKm: Infinity, dropKm: Infinity, ordered: false };
+    const p = { lat: v[1], lng: v[0] };
+    return { pickupKm: haversineKm(pickup, p), dropKm: haversineKm(drop, p), ordered: true };
+  }
+
+  // Per-segment + cumulative haversine lengths, computed once so pickup/drop share a distance scale.
+  const segLen = new Array<number>(n - 1);
+  const cum = new Array<number>(n);
+  cum[0] = 0;
+  for (let i = 0; i < n - 1; i++) {
+    const a = coords[i]!;
+    const b = coords[i + 1]!;
+    segLen[i] = haversineKm({ lat: a[1], lng: a[0] }, { lat: b[1], lng: b[0] });
+    cum[i + 1] = cum[i]! + segLen[i]!;
+  }
+
+  const p = projectOntoRoute(pickup, coords, segLen, cum);
+  const d = projectOntoRoute(drop, coords, segLen, cum);
+  return { pickupKm: p.distKm, dropKm: d.distKm, ordered: p.alongKm <= d.alongKm };
+}

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { vehicle } from "@/db/schema";
+import { vehicle, vehicleApprovalStatusEnum } from "@/db/schema";
 import { requirePermission, scopedWhere } from "@/lib/permissions";
 import { withErrorHandler } from "@/lib/api";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { logActivity } from "@/lib/activity";
 
 /**
@@ -23,8 +23,10 @@ export const PATCH = withErrorHandler(async (req: Request, ctx: Ctx) => {
   });
   if (!existing) throw new NotFoundError("Vehicle not found.");
 
-  const body = (await req.json()) as { approvalStatus?: "approved" | "inactive" };
-  if (!body.approvalStatus) throw new NotFoundError("approvalStatus is required.");
+  const body = (await req.json()) as { approvalStatus?: "approved" | "inactive" | "rejected" };
+  if (!body.approvalStatus || !vehicleApprovalStatusEnum.enumValues.includes(body.approvalStatus)) {
+    throw new ValidationError("A valid approvalStatus is required.");
+  }
 
   const [updated] = await db
     .update(vehicle)
