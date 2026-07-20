@@ -27,7 +27,7 @@ export function HistoryList() {
   return (
     <div className="flex flex-col gap-3.5">
       {data.map((h) => (
-        <HistoryCard key={h.trip.id} entry={h} />
+        <HistoryCard key={`${h.role}-${h.trip.id}`} entry={h} />
       ))}
     </div>
   );

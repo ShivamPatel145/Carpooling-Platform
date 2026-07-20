@@ -70,10 +70,18 @@ export default async function LiveTrackingPage() {
       ),
   ]);
 
-  const trips: LiveTrip[] = [
+  // The passenger query is booking→trip on rideId: a passenger with >1 active booking on the same
+  // ride repeats the same trip → duplicate React keys (key={t.tripId}). Collapse to one card per trip.
+  const merged: LiveTrip[] = [
     ...asPassenger.map((t) => ({ ...t, role: "passenger" as const, counterpart: t.counterpart })),
     ...asDriver.map((t) => ({ ...t, role: "driver" as const, counterpart: null })),
   ];
+  const seenTrips = new Set<string>();
+  const trips: LiveTrip[] = merged.filter((t) => {
+    if (seenTrips.has(t.tripId)) return false;
+    seenTrips.add(t.tripId);
+    return true;
+  });
 
   return (
     <div>

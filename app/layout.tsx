@@ -5,6 +5,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { homepageCopy } from "@/homepage.config";
 
 /*
  * LOCKED TYPE SYSTEM — Space Grotesk (display) · IBM Plex Sans (body) · IBM Plex Mono (data).
@@ -36,12 +37,13 @@ const fontMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  // TODO(build-day): replace with the chosen product name + domain description.
+  // Product name is sourced from homepage.config so a rename flows to the tab title too
+  // (same single source the Brand mark and auth panel read from).
   title: {
-    default: "Operations Platform",
-    template: "%s · Operations Platform",
+    default: homepageCopy.productName,
+    template: `%s · ${homepageCopy.productName}`,
   },
-  description: "A professional operations platform.",
+  description: homepageCopy.subhead,
 };
 
 export default function RootLayout({

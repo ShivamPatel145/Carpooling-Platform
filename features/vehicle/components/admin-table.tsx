@@ -11,7 +11,7 @@ export interface VehicleAdminRow {
   model: string;
   registrationNo: string;
   seatingCapacity: number;
-  approvalStatus: "approved" | "inactive";
+  approvalStatus: "approved" | "inactive" | "rejected";
   ownerId: string;
   ownerName: string;
   createdAt: Date;
@@ -22,7 +22,7 @@ function useSetStatus() {
   const router = useRouter();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
-  async function setStatus(id: string, status: "approved" | "inactive") {
+  async function setStatus(id: string, status: "approved" | "inactive" | "rejected") {
     setPendingId(id);
     try {
       await fetch(`/api/vehicle/admin/${id}`, {
@@ -78,7 +78,7 @@ export function VehicleAdminTable({ rows }: { rows: VehicleAdminRow[] }) {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => setStatus(v.id, "inactive")}
+                      onClick={() => setStatus(v.id, "rejected")}
                       id={`reject-vehicle-${v.id}`}
                       className={`${coGhostBtn} px-3.5 py-2 text-[13px] disabled:opacity-60`}
                     >
@@ -124,7 +124,7 @@ export function VehicleAdminTable({ rows }: { rows: VehicleAdminRow[] }) {
               <ul>
                 {rows.map((v, i) => {
                   const busy = pendingId === v.id;
-                  const isInactive = v.approvalStatus === "inactive";
+                  const isApproved = v.approvalStatus === "approved";
                   return (
                     <li
                       key={v.id}
@@ -160,18 +160,7 @@ export function VehicleAdminTable({ rows }: { rows: VehicleAdminRow[] }) {
 
                       {/* Action */}
                       <div className="md:justify-self-end">
-                        {isInactive ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setStatus(v.id, "approved")}
-                            id={`approve-vehicle-${v.id}`}
-                            className={`${coAmberBtn} px-3.5 py-2 text-[13px]`}
-                          >
-                            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                            Approve
-                          </button>
-                        ) : (
+                        {isApproved ? (
                           <button
                             type="button"
                             disabled={busy}
@@ -181,6 +170,17 @@ export function VehicleAdminTable({ rows }: { rows: VehicleAdminRow[] }) {
                           >
                             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                             Deactivate
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setStatus(v.id, "approved")}
+                            id={`approve-vehicle-${v.id}`}
+                            className={`${coAmberBtn} px-3.5 py-2 text-[13px]`}
+                          >
+                            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                            Approve
                           </button>
                         )}
                       </div>

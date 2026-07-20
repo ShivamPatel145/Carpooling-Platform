@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- The Coride mark on the ink `band` tile — verbatim from components/shell/coride-logo.tsx,
+       scaled to fill the tile the way the Brand component composes it. Self-contained (dark tile +
+       light strokes) so it reads on both light and dark browser chrome. -->
+  <rect width="32" height="32" rx="7" fill="#1A1D24"/>
+  <g transform="translate(5 5) scale(0.9167)">
+    <circle cx="5" cy="6.6" r="1.6" stroke="#F4F1EA" stroke-width="1.6"/>
+    <circle cx="5" cy="17.4" r="1.6" stroke="#F4F1EA" stroke-width="1.6"/>
+    <path d="M6.6 6.9C10.6 8.2 11 10.6 14.1 11.7" stroke="#F4F1EA" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M6.6 17.1C10.6 15.8 11 13.4 14.1 12.3" stroke="#F4F1EA" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="16.6" cy="12" r="2.5" fill="#F4A726"/>
+  </g>
+</svg>

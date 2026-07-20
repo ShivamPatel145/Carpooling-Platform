@@ -12,7 +12,7 @@ import { user } from "./user";
  * selectable when publishing a ride. A company_admin can approve, or register one on an employee's
  * behalf (registeredByAdminId). Built on the generic CRUD pattern (Slice A owns; approval surface D).
  */
-export const vehicleApprovalStatusEnum = pgEnum("vehicle_approval_status", ["approved", "inactive"]);
+export const vehicleApprovalStatusEnum = pgEnum("vehicle_approval_status", ["approved", "inactive", "rejected"]);
 export type VehicleApprovalStatus = (typeof vehicleApprovalStatusEnum.enumValues)[number];
 
 export const vehicle = pgTable(

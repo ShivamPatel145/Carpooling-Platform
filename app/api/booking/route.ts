@@ -1,4 +1,4 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ride, booking } from "@/db/schema";
 import { bookingFormSchema } from "@/features/ride/schema";
@@ -41,6 +41,31 @@ export const POST = withErrorHandler(async (req: Request) => {
   }
   if (values.seatsBooked > target.seatsTotal) {
     throw new ValidationError("That's more seats than the ride offers.");
+  }
+
+  // One active booking per (ride, passenger). A second booking on the same ride double-counts seats
+  // + fare and fans the trip↔booking join out downstream (duplicate React keys in history/tracking).
+  // Re-booking after cancelling is fine — only pending/confirmed bookings block. NOTE: this is a
+  // read-before-write check, so it closes the double-click / re-book path but not a true concurrent
+  // race; a partial unique index on booking(ride_id, passenger_id) WHERE status in (pending,confirmed)
+  // is the atomic backstop (see follow-up).
+  const [already] = await db
+    .select({ id: booking.id })
+    .from(booking)
+    .where(
+      scopedWhere(
+        tenant,
+        booking,
+        and(
+          eq(booking.rideId, values.rideId),
+          eq(booking.passengerId, session.user.id),
+          inArray(booking.status, ["pending", "confirmed"]),
+        ),
+      ),
+    )
+    .limit(1);
+  if (already) {
+    throw new ConflictError("You've already booked this ride. Manage it under My Rides.");
   }
 
   // ── Atomic conditional decrement ─────────────────────────────────────────────────────────────
